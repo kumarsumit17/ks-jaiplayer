@@ -1,6 +1,6 @@
 # KS JaiPlayer
 
-> Part of the [KS-Suite](../README.md).
+> Part of the [KS-Suite](https://github.com/kumarsumit17/KS-Suite).
 
 A multi-platform media player with a shared Kotlin core and native playback engines on each target.
 
@@ -20,7 +20,7 @@ cd ks-jaiplayer
 ## Release
 
 Releases are cut by pushing a semantic version tag (`git tag v1.2.3 && git push --tags`).
-See the suite-level [CI/CD guide](../README.md#-cicd-semantic-versioning--automated-signing).
+See the suite-level [CI/CD guide](https://github.com/kumarsumit17/KS-Suite#-cicd-semantic-versioning--automated-signing).
 
 ## License
 
