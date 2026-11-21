@@ -53,3 +53,6 @@ desktop.ini
 *.dmg
 *.pkg
 *.app/
+
+# ---- graphify: generated output ----
+graphify-out/
