@@ -12,7 +12,7 @@ A multi-platform media player with a shared Kotlin core and native playback engi
 ## Getting started
 
 ```bash
-git clone <repo-url> ks-jaiplayer
+git clone --recurse-submodules <repo-url> ks-jaiplayer
 cd ks-jaiplayer
 ./gradlew assembleDebug
 ```
