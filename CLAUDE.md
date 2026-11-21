@@ -2,6 +2,12 @@
 
 Multi-platform media player for Android, Google TV, Windows, and macOS.
 
+## Specs
+- All specs for this project live in `specs/` in the repository root, as an Open Knowledge Format (OKF) v0.2 bundle. Never create spec files anywhere else. Start at `specs/index.md`.
+- One topic per file. Every file except `index.md` and `log.md` starts with YAML frontmatter: `type` (required: `Specification`, `Policy`, `Plan`, `Playbook` or `Reference`), `title`, `description` (one sentence), `tags`.
+- When a spec is added: list it in `specs/index.md` with its description. When a spec is added or changed: add a line under today's date (`# YYYY-MM-DD`, newest first) in `specs/log.md`.
+- Link between specs with relative markdown links (`[Dependencies](dependencies.md)`), so they also work on GitHub.
+
 ## Stack
 - Kotlin Multiplatform + Compose Multiplatform
 - Playback: Media3/ExoPlayer on Android, VLCJ on desktop
