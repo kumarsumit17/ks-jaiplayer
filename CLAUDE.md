@@ -41,8 +41,8 @@ Native installers only build on their own OS. CI uses a Windows + macOS matrix.
 ## Platform folders
 - Every KS-Suite app repo has the same top-level platform folders: `tv/google-tv/`, `desktop/mac/`, `desktop/windows/`, `mobile/android/` and `mobile/ios/`. All five exist in every app repo, whether or not the app supports that platform yet.
 - This app targets `mobile/android`, `tv/google-tv` (one APK serves both), `desktop/windows` and `desktop/mac`. The other folders are empty on purpose (a `.gitkeep` only): they mark where that platform's code would go, not missing work. Do not add code for a platform that is not a target without the owner asking.
-- Code for one platform goes in that platform's folder. Code used by more than one platform stays in one shared place and is never copied between platform folders.
-- The skeleton still uses `shared/`, `androidApp/` and `desktopApp/` (see Module layout). When the Gradle build is created, the Android and TV entry point goes under `mobile/android/` and `tv/google-tv/`, the desktop entry points and native packaging under `desktop/windows/` and `desktop/mac/`, and code used by more than one platform stays in `shared/`.
+- Three layers, narrowest first: a platform folder holds code for one platform of this app; `shared/` in the repository root holds code used by two or more platforms of this app, written once and never copied between platform folders; `ks-utility` holds generic code used by several apps. Here `shared/` is the Kotlin Multiplatform module (UI, state, playlist and library logic).
+- The skeleton still uses `shared/`, `androidApp/` and `desktopApp/` (see Module layout). When the Gradle build is created, the Android and TV entry point goes under `mobile/android/` and `tv/google-tv/`, the desktop entry points and native packaging under `desktop/windows/` and `desktop/mac/`, and code used by more than one platform stays in `shared/` (`commonMain`, plus `androidMain` and `desktopMain` where two targets share them).
 - Never rename, merge or remove these folders, and never add another top-level platform folder; the layout is a suite-wide rule.
 
 ## Shared code (`ks-utility`)
