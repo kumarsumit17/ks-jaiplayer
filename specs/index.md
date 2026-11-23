@@ -6,6 +6,10 @@ okf_version: "0.2"
 
 * [Overview](overview.md) - What KS JaiPlayer is for, the platforms it runs on and its tech stack.
 
+# Plans
+
+* [Plan for the first milestone](plan-v1.md) - The playback engine on each platform, the shared player interface and UI, the first feature set, languages, packaging, build order and what is left for later.
+
 # Policies
 
 * [Constraints](constraints.md) - The platform constraints every change to KS JaiPlayer must keep.
@@ -14,3 +18,4 @@ okf_version: "0.2"
 # Reference
 
 * [Module layout](module-layout.md) - Which Kotlin Multiplatform module holds what.
+* [Third-party licences](licences.md) - The licence of every playback engine and library KS JaiPlayer uses or considered, and whether it fits the app's MIT licence.
