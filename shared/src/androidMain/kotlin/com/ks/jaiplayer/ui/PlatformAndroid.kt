@@ -7,6 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -51,11 +52,14 @@ actual fun Modifier.mediaDropTarget(onDrop: (List<MediaRef>) -> Unit): Modifier 
 
 @Composable
 actual fun ProvideLanguage(language: String, content: @Composable () -> Unit) {
-    // Compose resources follow LocalConfiguration on Android, so the chosen language is applied
-    // to this subtree on every Android version, without changing the system setting.
+    // The chosen language is applied to this subtree without changing the system setting.
+    // Compose resources read the JVM default locale as well as LocalConfiguration, so both are
+    // set, and key() recomposes everything so strings already on screen change too.
     val base = LocalConfiguration.current
     val configuration = remember(base, language) {
-        Configuration(base).apply { setLocale(Locale.forLanguageTag(language)) }
+        val locale = Locale.forLanguageTag(language)
+        Locale.setDefault(locale)
+        Configuration(base).apply { setLocale(locale) }
     }
-    CompositionLocalProvider(LocalConfiguration provides configuration, content = content)
+    CompositionLocalProvider(LocalConfiguration provides configuration) { key(language) { content() } }
 }
