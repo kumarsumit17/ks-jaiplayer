@@ -40,7 +40,11 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.focus.FocusManager
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.isShiftPressed
 import androidx.compose.ui.input.key.key
@@ -329,6 +333,8 @@ private fun EpisodeMenu(app: JaiPlayerState, list: Playlist) {
 
 @Composable
 private fun SeekBar(state: PlaybackState, controller: PlayerController) {
+    val form = LocalFormFactor.current
+    val focusManager = LocalFocusManager.current
     // While the thumb is dragged the bar shows the drag position, and seeks when it is let go.
     var dragging by remember { mutableStateOf<Float?>(null) }
     val duration = state.durationMs.coerceAtLeast(1)
@@ -345,7 +351,8 @@ private fun SeekBar(state: PlaybackState, controller: PlayerController) {
             },
             enabled = state.canSeek,
             colors = SliderDefaults.colors(inactiveTrackColor = Color.White.copy(alpha = 0.25f)),
-            modifier = Modifier.weight(1f).padding(horizontal = 12.dp).desktopNoFocus(),
+            modifier = Modifier.weight(1f).padding(horizontal = 12.dp).desktopNoFocus().tvFocusRing(RoundedCornerShape(12.dp))
+                .onPreviewKeyEvent { e -> if (form == FormFactor.Tv) tvSeekBarKey(e, controller, focusManager) else false },
         )
         TimeText(formatPlaybackTime(state.durationMs))
     }
@@ -371,4 +378,20 @@ private fun VolumeSlider(state: PlaybackState, controller: PlayerController) {
     Spacer(Modifier.width(4.dp))
     Text("${if (state.muted) 0 else state.volume}", color = Color.White, style = MaterialTheme.typography.bodySmall,
         modifier = Modifier.width(28.dp))
+}
+
+/**
+ * TV remote on the seek bar: left/right jump 10 s (the slider's own step would be a tiny fraction
+ * of a long film), up/down leave the bar, so focus is never trapped in it.
+ */
+private fun tvSeekBarKey(e: KeyEvent, controller: PlayerController, focusManager: FocusManager): Boolean {
+    if (e.type != KeyEventType.KeyDown) return e.key in setOf(Key.DirectionLeft, Key.DirectionRight, Key.DirectionUp, Key.DirectionDown)
+    when (e.key) {
+        Key.DirectionLeft -> controller.seekBy(-PlayerController.SEEK_STEP_MS)
+        Key.DirectionRight -> controller.seekBy(PlayerController.SEEK_STEP_MS)
+        Key.DirectionUp -> focusManager.moveFocus(FocusDirection.Up)
+        Key.DirectionDown -> focusManager.moveFocus(FocusDirection.Down)
+        else -> return false
+    }
+    return true
 }

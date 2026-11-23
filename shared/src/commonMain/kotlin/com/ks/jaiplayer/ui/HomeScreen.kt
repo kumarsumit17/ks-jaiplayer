@@ -66,7 +66,7 @@ fun HomeScreen(app: JaiPlayerState) {
             .windowInsetsPadding(WindowInsets.safeDrawing)
             .padding(m.safe),
     ) {
-        IconButton(onClick = { app.showSettings = true }, modifier = Modifier.align(Alignment.TopEnd)) {
+        IconButton(onClick = { app.showSettings = true }, modifier = Modifier.align(Alignment.TopEnd).tvFocusRing()) {
             Icon(JaiIcons.Settings, stringResource(Res.string.common_settings), Modifier.size(m.icon))
         }
         Column(
@@ -81,7 +81,7 @@ fun HomeScreen(app: JaiPlayerState) {
             }
             Button(
                 onClick = app::pickAndOpen,
-                modifier = Modifier.focusRequester(openFocus).height(m.button + 12.dp),
+                modifier = Modifier.focusRequester(openFocus).tvFocusRing(RoundedCornerShape(14.dp)).height(m.button + 12.dp),
                 shape = RoundedCornerShape(14.dp),
             ) {
                 Icon(JaiIcons.Folder, null, Modifier.size(m.icon))
@@ -89,7 +89,11 @@ fun HomeScreen(app: JaiPlayerState) {
                 Text(stringResource(Res.string.home_open_file), fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
             }
             Spacer(Modifier.height(10.dp))
-            OutlinedButton(onClick = app::pickFolderAndOpen, shape = RoundedCornerShape(14.dp), modifier = Modifier.height(m.button + 8.dp)) {
+            OutlinedButton(
+                onClick = app::pickFolderAndOpen,
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier.tvFocusRing(RoundedCornerShape(14.dp)).height(m.button + 8.dp),
+            ) {
                 Icon(JaiIcons.Episodes, null, Modifier.size(m.icon))
                 Spacer(Modifier.size(10.dp))
                 Text(stringResource(Res.string.home_open_series))

@@ -44,6 +44,7 @@ import com.ks.jaiplayer.resources.menu_open_recent
 import com.ks.jaiplayer.ui.JaiIcons
 import com.ks.jaiplayer.ui.LocalMetrics
 import com.ks.jaiplayer.ui.PlatformHost
+import com.ks.jaiplayer.ui.tvFocusRing
 import org.jetbrains.compose.resources.stringResource
 
 /** Built-in plugin: the last 20 files played, on the home screen and in File → Open recent. */
@@ -110,7 +111,11 @@ private fun RecentSection(
 private fun RecentRow(media: MediaRef, host: PlatformHost, open: (MediaRef) -> Unit, remove: (MediaRef) -> Unit) {
     val m = LocalMetrics.current
     val exists = remember(media) { host.exists(media) }
-    Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = RoundedCornerShape(10.dp), modifier = Modifier.fillMaxWidth()) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        shape = RoundedCornerShape(10.dp),
+        modifier = Modifier.fillMaxWidth().tvFocusRing(RoundedCornerShape(10.dp)),
+    ) {
         Row(
             Modifier.clickable(enabled = exists) { open(media) }.padding(horizontal = 14.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -125,7 +130,7 @@ private fun RecentRow(media: MediaRef, host: PlatformHost, open: (MediaRef) -> U
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            IconButton(onClick = { remove(media) }) {
+            IconButton(onClick = { remove(media) }, modifier = Modifier.tvFocusRing()) {
                 Icon(JaiIcons.Close, stringResource(Res.string.common_remove), Modifier.size(m.icon * 0.8f))
             }
         }

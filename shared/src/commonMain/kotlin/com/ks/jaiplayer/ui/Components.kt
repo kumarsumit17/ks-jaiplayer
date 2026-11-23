@@ -1,5 +1,6 @@
 package com.ks.jaiplayer.ui
 
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -18,7 +19,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -33,7 +38,7 @@ val LocalMenuOpen = staticCompositionLocalOf<(Boolean) -> Unit> { {} }
 @Composable
 fun ControlButton(icon: ImageVector, label: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
     val m = LocalMetrics.current
-    IconButton(onClick = onClick, enabled = enabled, modifier = modifier.size(m.button + 8.dp).desktopNoFocus()) {
+    IconButton(onClick = onClick, enabled = enabled, modifier = modifier.size(m.button + 8.dp).desktopNoFocus().tvFocusRing()) {
         Icon(icon, label, Modifier.size(m.icon), tint = if (enabled) Color.White else Color.White.copy(alpha = 0.35f))
     }
 }
@@ -67,7 +72,7 @@ fun IconControlMenu(icon: ImageVector, label: String, items: @Composable (close:
 @Composable
 fun TextControlMenu(text: String, label: String, items: @Composable (close: () -> Unit) -> Unit) =
     ControlMenu(label, anchor = { open ->
-        TextButton(onClick = open, modifier = Modifier.desktopNoFocus()) {
+        TextButton(onClick = open, modifier = Modifier.desktopNoFocus().tvFocusRing(RoundedCornerShape(20.dp))) {
             Text(text, color = Color.White, fontWeight = FontWeight.SemiBold)
         }
     }, items = items)
@@ -80,6 +85,19 @@ fun MenuChoice(text: String, selected: Boolean, onClick: () -> Unit) {
         leadingIcon = { Text(if (selected) "✓" else "", modifier = Modifier.width(16.dp)) },
         onClick = onClick,
     )
+}
+
+/**
+ * On TV, a clear ring around the focused control (the suite's TV convention: D-pad first, focus
+ * always visible). No effect elsewhere.
+ */
+@Composable
+fun Modifier.tvFocusRing(shape: Shape = CircleShape): Modifier {
+    if (LocalFormFactor.current != FormFactor.Tv) return this
+    var focused by remember { mutableStateOf(false) }
+    return this
+        .onFocusChanged { focused = it.isFocused || it.hasFocus }
+        .border(if (focused) 3.dp else 0.dp, if (focused) Color.White else Color.Transparent, shape)
 }
 
 /** On desktop, controls never take keyboard focus, so the keys always reach the player. */
