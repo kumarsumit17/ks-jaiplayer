@@ -5,12 +5,17 @@ name: Release
 #
 #   Tag push vMAJOR.MINOR.PATCH   Builds the signed APK (phone + Google TV), the macOS dmg and the
 #                                 Windows msi, then publishes the GitHub Release.
-#   Manual run                    Builds everything for testing; never publishes.
+#   Manual run (rehearsal)        Builds and checks everything for the version given; never publishes.
 
 on:
   push:
     tags: ["v*.*.*"]
   workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to rehearse, X.Y.Z. Builds everything, releases nothing."
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -24,7 +29,10 @@ jobs:
     uses: kumarsumit17/ks-utility/.github/workflows/kotlin-app-release.yml@feat/shared-release-workflow
     permissions:
       contents: write
+      id-token: write
+      attestations: write
     with:
+      version: ${{ inputs.version }}
       app-name: ks-jaiplayer
       display-name: KS JaiPlayer
       android-module: ":mobile:android"
