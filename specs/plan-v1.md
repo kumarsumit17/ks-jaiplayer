@@ -4,9 +4,12 @@ title: Plan for the first milestone
 description: The playback engine on each platform, the shared player interface and UI, the first feature set, languages, packaging, build order and what is left for later.
 tags: [plan, engines, architecture, milestone]
 status: approved
+updated: 2026-11-23
 ---
 
 # Plan for the first milestone
+
+> **Changes made while building (2026-11-23), by the owner's requests:** a minimal core with plugins ([Plugins](plugins.md)); TV series (a folder of episodes played one after another) and playback speed in the core; app updates from GitHub (ks-utility `v0.3.0`); one release workflow shared by every Kotlin app, in ks-utility. Two findings: on macOS libVLC must decode in software, because subtitles cannot be blended onto VideoToolbox frames that arrive through callbacks; and jpackage refuses a macOS version that starts with 0, so the first release is **v1.0.0**. The sections below are updated to match.
 
 KS JaiPlayer plays local video and audio files on macOS, Windows, Android and Google TV. One Kotlin code base holds the player logic and the interface; each platform adds only its playback engine, its entry point and its packaging. macOS is built first. IINA was the reference for what a good player offers (a quiet window that is all video, controls that appear on demand, keyboard first, drag a file in to play); the design, code and assets here are our own.
 
@@ -87,8 +90,11 @@ The TV layout switches at runtime from `UiModeManager`, so one APK serves phone 
 5. Full screen.
 6. Subtitles: choose an embedded track or none; load an external `.srt`/`.ass`/`.vtt` file.
 7. Audio track choice.
-8. Recent files: the last 20, newest first, kept in the app's settings; a file that no longer exists is shown greyed and can be removed.
+8. Recent files: the last 20, newest first, kept in the app's settings; a file that no longer exists is shown greyed and can be removed (a plugin).
 9. Language: English and Hindi, in Settings next to "Same as the system".
+10. TV series: open a folder (or drop one, or several files); every video in it and its season subfolders plays one after another in natural order (Episode 2 before Episode 10), with previous, next and an episode list. Keys N and P, media next/previous.
+11. Playback speed: 0.5× to 2× from the control bar and the Playback menu; keys [ and ]. The speed carries over from one episode to the next.
+12. App updates: Settings › App updates, as ks-utility's `specs/app-update.md` defines.
 
 ## 5. English and Hindi through `ks-utility`
 
@@ -102,7 +108,7 @@ The TV layout switches at runtime from `UiModeManager`, so one APK serves phone 
 | Gradle project | Folder | Holds |
 |---|---|---|
 | `:shared` | `shared/` | Kotlin Multiplatform module: common code, `desktopMain`, `androidMain` |
-| `:desktop:mac` | `desktop/mac/` | macOS entry point (menu bar, Finder "Open With", VLC.app discovery), dmg packaging |
+| `:desktop:mac` | `desktop/mac/` | macOS entry point (menu bar, Finder "Open With", VLC.app discovery, software decoding), dmg packaging |
 | `:desktop:windows` | `desktop/windows/` | Windows entry point (VLC registry discovery, command-line file), msi packaging |
 | `:mobile:android` | `mobile/android/` | The one APK: manifest, activity, phone layout, picture-in-picture |
 | `:tv:google-tv` | `tv/google-tv/` | Android library with the TV layout and the leanback banner, used by the APK |
@@ -119,7 +125,7 @@ Stack versions (latest stable at the time of writing): Kotlin 2.4.21 (same as `k
 | Windows | `.msi` | `./gradlew :desktop:windows:packageReleaseMsi` on Windows (CI) | Unsigned for now (SmartScreen warns). |
 | Android + Google TV | one `.apk` (and `.aab`) | `./gradlew :mobile:android:assembleRelease` | Signed in CI from repository secrets; version from the tag. |
 
-The release workflow changes to the new task names, adds Node for the language files, and keeps versions from tags (`-PversionName`, `-PversionCode`).
+Releases run ks-utility's shared release workflow (`kotlin-app-release.yml`), called from `.github/workflows/release.yml`; versions come from the tag (`-PversionName`, `-PversionCode`), and the files are named `ks-jaiplayer-v<version>.apk`, `-macos-arm64.dmg`, `-windows-x64.msi` for the update check.
 
 ## 8. Build order
 

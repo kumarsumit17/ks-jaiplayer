@@ -10,6 +10,10 @@ okf_version: "0.2"
 
 * [Plan for the first milestone](plan-v1.md) - The playback engine on each platform, the shared player interface and UI, the first feature set, languages, packaging, build order and what is left for later.
 
+# Specifications
+
+* [Plugins](plugins.md) - The minimal core of KS JaiPlayer and the plugin API that adds every other feature, with the built-in plugins.
+
 # Policies
 
 * [Constraints](constraints.md) - The platform constraints every change to KS JaiPlayer must keep.

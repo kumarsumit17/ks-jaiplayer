@@ -10,47 +10,53 @@ Multi-platform media player for Android, Google TV, Windows, and macOS.
 
 ## Stack
 - Kotlin Multiplatform + Compose Multiplatform
-- Playback: Media3/ExoPlayer on Android, VLCJ on desktop
+- Playback: Media3/ExoPlayer on Android and Google TV; libVLC 3.x on macOS and Windows through our own JNA binding (not vlcj, which is GPL-3.0). See `specs/licences.md`.
+- A minimal core plus plugins: features beyond open/play/seek/volume/full screen/series/speed are `JaiPlugin`s (`specs/plugins.md`).
 - Package: `com.ks.jaiplayer`
 
 ## Module layout
-| Module | Purpose |
-|---|---|
-| `shared/src/commonMain` | UI, state, playlist and library logic. **No platform imports.** |
-| `shared/src/androidMain` | `actual` implementations: ExoPlayer engine, Android file access |
-| `shared/src/desktopMain` | `actual` implementations: VLCJ engine, desktop file access |
-| `androidApp/` | Android + Google TV entry point (one APK) |
-| `desktopApp/` | Windows / macOS entry point and native packaging |
+| Gradle project | Folder | Purpose |
+|---|---|---|
+| `:shared` | `shared/src/commonMain` | Player core, plugin API, built-in plugins, the whole UI. **No platform imports.** |
+| | `shared/src/jvmSharedMain` | JVM code for desktop and Android: app updates (ks-utility) |
+| | `shared/src/desktopMain` | libVLC engine (JNA), video surface, desktop app runner |
+| | `shared/src/androidMain` | Media3 ExoPlayer engine, video surface |
+| `:desktop:mac` | `desktop/mac/` | macOS entry point (menu bar, Finder Open With, VLC.app discovery), dmg |
+| `:desktop:windows` | `desktop/windows/` | Windows entry point (VLC registry discovery), msi |
+| `:mobile:android` | `mobile/android/` | The one APK for phone and TV: activity, pickers, picture-in-picture, updates |
+| `:tv:google-tv` | `tv/google-tv/` | Android library merged into the APK: leanback entry, banner, TV detection |
 
 ## Platform constraints
-- Platform code goes behind an `expect`/`actual` `PlayerEngine` interface. Never call ExoPlayer or VLCJ from `commonMain`.
+- Platform code goes behind the `PlayerEngine` interface (`commonMain`) with `expect`/`actual` `VideoSurface`. Never call ExoPlayer or libVLC from `commonMain`.
 - **One Android APK serves phone and TV.** Declare `android.software.leanback` and `android.hardware.touchscreen` with `required="false"`. The TV layout switches at runtime from `UiModeManager`. TV screens must be D-pad navigable.
-- **Desktop needs VLC installed** (libVLC 3.x). Show a clear message if native discovery fails. Don't crash.
+- **Desktop needs VLC installed** (libVLC 3.x). Show a clear message if native discovery fails. Don't crash. On macOS libVLC decodes in software (`MAC_VLC_ARGS`), because subtitles cannot be blended onto VideoToolbox frames delivered through callbacks.
 - Keyboard shortcuts on desktop (space, arrows, F for fullscreen) must match the remote's D-pad actions on TV.
 - Implement the `ACTION_VIEW` intent for `video/*` and `audio/*` so other KS apps (`ks-streamflix`, `ks-tv-launcher`) can hand off playback.
 
 ## Commands
 ```bash
-./gradlew :shared:allTests                                   # common + platform tests
-./gradlew :androidApp:installDebug                           # Android / Google TV
-./gradlew :desktopApp:run                                    # run desktop app
-./gradlew :desktopApp:packageReleaseDistributionForCurrentOS # .msi/.exe on Windows, .dmg on macOS
+./gradlew :shared:desktopTest :shared:check                  # tests and the language-file check
+JAIPLAYER_TEST_MEDIA=<video with 2 audio tracks> ./gradlew :shared:desktopTest   # + real libVLC test
+./gradlew :mobile:android:installDebug                       # Android / Google TV
+./gradlew :desktop:mac:run --args="<file or folder>"         # run on macOS
+./gradlew :desktop:mac:packageReleaseDmg                     # .dmg (on a Mac)
+./gradlew :desktop:windows:packageReleaseMsi                 # .msi (on Windows / CI)
 ```
-Native installers only build on their own OS. CI uses a Windows + macOS matrix.
+Native installers only build on their own OS. Releases use ks-utility's shared release workflow (`.github/workflows/release.yml` calls it). The build needs Node 23.6+ for the language files. `JAIPLAYER_VLC_LOG=<file>` writes libVLC's log for diagnosis.
 
 ## Platform folders
 - Every KS-Suite app repo has the same top-level platform folders: `tv/google-tv/`, `desktop/mac/`, `desktop/windows/`, `mobile/android/` and `mobile/ios/`. All five exist in every app repo, whether or not the app supports that platform yet.
 - This app targets `mobile/android`, `tv/google-tv` (one APK serves both), `desktop/windows` and `desktop/mac`. The other folders are empty on purpose (a `.gitkeep` only): they mark where that platform's code would go, not missing work. Do not add code for a platform that is not a target without the owner asking.
 - Three layers, narrowest first: a platform folder holds code for one platform of this app; `shared/` in the repository root holds code used by two or more platforms of this app, written once and never copied between platform folders; `ks-utility` holds generic code used by several apps. Here `shared/` is the Kotlin Multiplatform module (UI, state, playlist and library logic).
-- The skeleton still uses `shared/`, `androidApp/` and `desktopApp/` (see Module layout). When the Gradle build is created, the Android and TV entry point goes under `mobile/android/` and `tv/google-tv/`, the desktop entry points and native packaging under `desktop/windows/` and `desktop/mac/`, and code used by more than one platform stays in `shared/` (`commonMain`, plus `androidMain` and `desktopMain` where two targets share them).
+- The Gradle build follows this layout (see Module layout): platform entry points and packaging in the platform folders, code used by more than one platform in `shared/`.
 - Never rename, merge or remove these folders, and never add another top-level platform folder; the layout is a suite-wide rule.
 
 ## Shared code (`ks-utility`)
 - Generic utility code shared across the KS-Suite apps lives in the `ks-utility` repository. It is a dependency of this app: a git submodule at `ks-utility/`, pinned to a commit. After cloning, run `git submodule update --init`.
 - Before writing a generic helper (one that knows nothing about this app), look in `ks-utility/kotlin` and use it from there. If it is missing and another app would need it too, add it in the `ks-utility` repository, not here. Application-specific logic stays in this repo.
 - Never edit files under `ks-utility/` from this repo. Change them in the `ks-utility` repository, then move the pin: `git -C ks-utility fetch && git -C ks-utility checkout <commit>`, and commit the changed `ks-utility` entry.
-- Gradle wiring, to add when this repo's Gradle build is created: `includeBuild("ks-utility/kotlin")` in `settings.gradle.kts`, `ks-utility = { module = "com.ks:utility" }` in `gradle/libs.versions.toml`, and `implementation(libs.ks.utility)` in the module that uses it. It is a plain Kotlin/JVM library with no Android SDK.
-- `ks-utility` is JVM-only: use it from `androidMain`, `desktopMain` and the two app modules, never from `commonMain`.
+- Gradle wiring: `includeBuild("ks-utility/kotlin")` in `settings.gradle.kts`, `ks-utility = { module = "com.ks:utility" }` in `gradle/libs.versions.toml`, `implementation(libs.ks.utility)` where used. It is a plain Kotlin/JVM library with no Android SDK.
+- `ks-utility` is JVM-only: use it from `jvmSharedMain`, `androidMain`, `desktopMain` and the app modules, never from `commonMain`. Its language files (`lang/common`) and `typescript/tools/lang.mjs` produce the Compose string resources.
 - CI checks out with `submodules: true` (`.github/workflows/release.yml`).
 
 ## Working efficiently (keep token use low)

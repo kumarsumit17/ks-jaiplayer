@@ -1,5 +1,9 @@
 # 2026-11-23
 
+* **Creation**: [Plugins](plugins.md) added: a minimal core, the `JaiPlugin` API, the built-in Recent files and Tracks plugins.
+* **Update**: [Plan for the first milestone](plan-v1.md): plugins, TV series and playback speed in the core, app updates, the shared release workflow, software decoding on macOS, first release v1.0.0.
+* **Update**: [Overview](overview.md), [Constraints](constraints.md), [Module layout](module-layout.md): the built layout and engines (libVLC through JNA instead of vlcj).
+* **Update**: [Dependencies](dependencies.md): first dependencies added, each with its reason: Compose Multiplatform (runtime, foundation, ui, material3 1.9.0, resources) for the one shared interface; kotlinx-coroutines (core, swing, android) for the engines' threads; JNA 5.19.1 to call libVLC without native code; Media3 1.11.1 (exoplayer, ui-compose) for Android and TV playback; androidx.activity-compose for the Android entry point. ks-utility pinned to v0.3.0 (language files, app updates).
 * **Creation**: [Plan for the first milestone](plan-v1.md) approved by the owner: libVLC through our own JNA binding on desktop (instead of GPL-3.0 vlcj), Media3 ExoPlayer on Android and Google TV, one shared `PlayerEngine` interface and Compose Multiplatform UI.
 * **Creation**: [Third-party licences](licences.md) added.
 
