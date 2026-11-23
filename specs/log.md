@@ -1,5 +1,6 @@
 # 2026-11-23
 
+* **Update**: Release: tag `v1.0.0` was never released: its run built and verified every file, but the shared workflow (ks-utility `v0.4.0`) named the signed APK `-UNSIGNED` and the publish check stopped it. The first release is `v1.0.1`, with ks-utility `v0.4.1`.
 * **Creation**: [Plugins](plugins.md) added: a minimal core, the `JaiPlugin` API, the built-in Recent files and Tracks plugins.
 * **Update**: [Plan for the first milestone](plan-v1.md): plugins, TV series and playback speed in the core, app updates, the shared release workflow, software decoding on macOS, first release v1.0.0.
 * **Update**: [Overview](overview.md), [Constraints](constraints.md), [Module layout](module-layout.md): the built layout and engines (libVLC through JNA instead of vlcj).
