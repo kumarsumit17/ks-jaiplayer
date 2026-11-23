@@ -18,7 +18,7 @@ internal object Documents {
     }
 
     fun mediaRef(context: Context, uri: Uri, title: String? = null): MediaRef =
-        MediaRef(uri.toString(), title ?: displayName(context, uri) ?: uri.lastPathSegment?.substringAfterLast('/') ?: uri.toString())
+        MediaRef(uri.toString(), title?.takeIf { it.isNotBlank() } ?: displayName(context, uri) ?: uri.lastPathSegment?.substringAfterLast('/') ?: uri.toString())
 
     private fun displayName(context: Context, uri: Uri): String? = runCatching {
         context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c ->
