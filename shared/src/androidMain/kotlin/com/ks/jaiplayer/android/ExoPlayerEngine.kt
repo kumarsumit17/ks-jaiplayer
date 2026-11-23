@@ -1,0 +1,199 @@
+package com.ks.jaiplayer.android
+
+import android.content.Context
+import android.net.Uri
+import androidx.media3.common.C
+import androidx.media3.common.MediaItem
+import androidx.media3.common.MimeTypes
+import androidx.media3.common.PlaybackException
+import androidx.media3.common.Player
+import androidx.media3.common.TrackSelectionOverride
+import androidx.media3.common.Tracks
+import androidx.media3.exoplayer.ExoPlayer
+import com.ks.jaiplayer.player.MediaRef
+import com.ks.jaiplayer.player.PlaybackState
+import com.ks.jaiplayer.player.PlaybackStatus
+import com.ks.jaiplayer.player.PlayerEngine
+import com.ks.jaiplayer.player.PlayerError
+import com.ks.jaiplayer.player.Track
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+
+/**
+ * The Android and Google TV engine: Media3 ExoPlayer with the device's hardware decoders.
+ * Every call must come from the main thread, as ExoPlayer requires; the interface does that.
+ *
+ * Track ids are positions in ExoPlayer's track-group list of that type, so they stay valid
+ * until the media changes.
+ */
+class ExoPlayerEngine(context: Context) : PlayerEngine {
+    internal val player: ExoPlayer = ExoPlayer.Builder(context.applicationContext).build()
+
+    private val _state = MutableStateFlow(PlaybackState())
+    override val state: StateFlow<PlaybackState> = _state
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private var volume = 100
+    private var muted = false
+    private var subtitles = emptyList<MediaItem.SubtitleConfiguration>()
+    private var everPlayed = false
+
+    init {
+        player.addListener(object : Player.Listener {
+            override fun onEvents(player: Player, events: Player.Events) = refresh()
+
+            override fun onPlayerError(error: PlaybackException) {
+                _state.update {
+                    it.copy(status = PlaybackStatus.Error, error = if (everPlayed) PlayerError.Playback else PlayerError.CannotOpen)
+                }
+            }
+        })
+        scope.launch {
+            while (isActive) {
+                if (player.isPlaying) refresh()
+                delay(250)
+            }
+        }
+    }
+
+    private fun refresh() {
+        val tracks = player.currentTracks
+        val status = when {
+            _state.value.status == PlaybackStatus.Error && player.playerError != null -> PlaybackStatus.Error
+            player.currentMediaItem == null -> PlaybackStatus.Idle
+            player.playbackState == Player.STATE_ENDED -> PlaybackStatus.Ended
+            player.playbackState == Player.STATE_BUFFERING && !everPlayed -> PlaybackStatus.Opening
+            player.isPlaying || (player.playWhenReady && player.playbackState == Player.STATE_BUFFERING) -> PlaybackStatus.Playing
+            else -> PlaybackStatus.Paused
+        }
+        if (player.isPlaying) everPlayed = true
+        _state.update {
+            it.copy(
+                status = status,
+                positionMs = player.currentPosition.coerceAtLeast(0),
+                durationMs = player.duration.takeIf { d -> d != C.TIME_UNSET }?.coerceAtLeast(0) ?: 0,
+                speed = player.playbackParameters.speed,
+                hasVideo = player.videoSize.width > 0,
+                audioTracks = tracksOf(tracks, C.TRACK_TYPE_AUDIO),
+                subtitleTracks = tracksOf(tracks, C.TRACK_TYPE_TEXT),
+                audioTrackId = selectedOf(tracks, C.TRACK_TYPE_AUDIO),
+                subtitleTrackId = selectedOf(tracks, C.TRACK_TYPE_TEXT),
+                error = if (status == PlaybackStatus.Error) it.error else null,
+            )
+        }
+    }
+
+    private fun groupsOf(tracks: Tracks, type: Int) = tracks.groups.filter { it.type == type && it.isSupported }
+
+    private fun tracksOf(tracks: Tracks, type: Int) = groupsOf(tracks, type).mapIndexed { i, g ->
+        val format = g.getTrackFormat(0)
+        Track(i, format.label, format.language?.takeUnless { it == C.LANGUAGE_UNDETERMINED })
+    }
+
+    private fun selectedOf(tracks: Tracks, type: Int): Int? =
+        groupsOf(tracks, type).indexOfFirst { it.isSelected }.takeIf { it >= 0 }
+
+    /** The video's size in pixels, (0, 0) before it is known; for picture-in-picture. */
+    fun videoSize(): Pair<Int, Int> = player.videoSize.let { it.width to it.height }
+
+    override fun open(media: MediaRef) {
+        everPlayed = false
+        subtitles = emptyList()
+        _state.update {
+            PlaybackState(status = PlaybackStatus.Opening, media = media, volume = it.volume, muted = it.muted, speed = it.speed)
+        }
+        player.setMediaItem(MediaItem.Builder().setUri(Uri.parse(media.uri)).build())
+        player.prepare()
+        player.play()
+    }
+
+    override fun play() {
+        if (player.playbackState == Player.STATE_ENDED) player.seekTo(0)
+        player.play()
+    }
+
+    override fun pause() = player.pause()
+
+    override fun seekTo(positionMs: Long) {
+        player.seekTo(positionMs)
+        _state.update { it.copy(positionMs = positionMs) }
+    }
+
+    override fun setVolume(volume: Int) {
+        this.volume = volume.coerceIn(0, 100)
+        applyVolume()
+        _state.update { it.copy(volume = this.volume) }
+    }
+
+    override fun setMuted(muted: Boolean) {
+        this.muted = muted
+        applyVolume()
+        _state.update { it.copy(muted = muted) }
+    }
+
+    private fun applyVolume() {
+        player.volume = if (muted) 0f else volume / 100f
+    }
+
+    override fun setSpeed(speed: Float) {
+        player.setPlaybackSpeed(speed.coerceIn(0.25f, 4f))
+        _state.update { it.copy(speed = speed) }
+    }
+
+    override fun selectAudioTrack(id: Int) = select(C.TRACK_TYPE_AUDIO, id)
+
+    override fun selectSubtitleTrack(id: Int?) {
+        if (id == null) {
+            player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
+                .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true).build()
+        } else {
+            select(C.TRACK_TYPE_TEXT, id)
+        }
+    }
+
+    private fun select(type: Int, id: Int) {
+        val group = groupsOf(player.currentTracks, type).getOrNull(id) ?: return
+        player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
+            .setTrackTypeDisabled(type, false)
+            .setOverrideForType(TrackSelectionOverride(group.mediaTrackGroup, 0))
+            .build()
+    }
+
+    /** Media3 takes side-loaded subtitles with the media item, so the item is set again in place. */
+    override fun addSubtitle(uri: String) {
+        val item = player.currentMediaItem ?: return
+        val mime = when (uri.substringAfterLast('.').lowercase()) {
+            "vtt" -> MimeTypes.TEXT_VTT
+            "ass", "ssa" -> MimeTypes.TEXT_SSA
+            "ttml", "xml" -> MimeTypes.APPLICATION_TTML
+            else -> MimeTypes.APPLICATION_SUBRIP
+        }
+        subtitles = subtitles + MediaItem.SubtitleConfiguration.Builder(Uri.parse(uri))
+            .setMimeType(mime).setSelectionFlags(C.SELECTION_FLAG_DEFAULT).build()
+        val position = player.currentPosition
+        val playing = player.playWhenReady
+        player.setMediaItem(item.buildUpon().setSubtitleConfigurations(subtitles).build(), position)
+        player.prepare()
+        player.playWhenReady = playing
+        player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
+            .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, false).build()
+    }
+
+    override fun stop() {
+        player.stop()
+        player.clearMediaItems()
+        _state.update { PlaybackState(volume = it.volume, muted = it.muted, speed = it.speed) }
+    }
+
+    override fun release() {
+        scope.cancel()
+        player.release()
+    }
+}

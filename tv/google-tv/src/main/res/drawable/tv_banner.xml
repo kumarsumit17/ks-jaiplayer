@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- KS JaiPlayer TV banner (320 × 180): the amber play mark on the app's dark background. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="320dp" android:height="180dp"
+    android:viewportWidth="320" android:viewportHeight="180">
+    <path android:fillColor="#0E0F12" android:pathData="M0,0h320v180h-320z" />
+    <path android:fillColor="#FFB648" android:pathData="M40,50h80a12,12 0,0 1,12 12v56a12,12 0,0 1,-12 12h-80a12,12 0,0 1,-12 -12v-56a12,12 0,0 1,12 -12z" />
+    <path android:fillColor="#2A1700" android:pathData="M68,70L100,90L68,110Z" />
+    <path android:fillColor="#ECEDEF" android:pathData="M156,70h8v40h-8z M172,70h8v24h20v-24h8v40h-8v-8h-20v8h-8z" />
+    <path android:fillColor="#FFB648" android:pathData="M220,70h8v32a8,8 0,0 1,-8 8h-8v-8h8z M236,70h8v40h-8z M252,70h20a10,10 0,0 1,0 20h-12v20h-8z M260,78v4h12a2,2 0,0 0,0 -4z" />
+</vector>

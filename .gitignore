@@ -56,3 +56,6 @@ desktop.ini
 
 # ---- graphify: generated output ----
 graphify-out/
+
+# ---- Kotlin ----
+.kotlin/

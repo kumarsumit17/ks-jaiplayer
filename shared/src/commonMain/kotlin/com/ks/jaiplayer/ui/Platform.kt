@@ -1,0 +1,43 @@
+package com.ks.jaiplayer.ui
+
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import com.ks.jaiplayer.player.MediaRef
+import com.ks.jaiplayer.player.PlayerEngine
+
+/** Which kind of device the interface is laid out for. */
+enum class FormFactor { Desktop, Phone, Tv }
+
+/** What the shared interface needs from the platform it runs on. */
+interface PlatformHost {
+    val formFactor: FormFactor
+
+    /** Shows the platform's file picker for video and audio; calls [onPicked] if a file is chosen. */
+    fun pickMedia(onPicked: (MediaRef) -> Unit)
+
+    /**
+     * Lets the user choose a folder (a series, a season) and returns its video and audio files,
+     * subfolders included, in natural name order ([com.ks.jaiplayer.player.naturalNameOrder]).
+     */
+    fun pickFolder(onPicked: (List<MediaRef>) -> Unit)
+
+    /** Shows the file picker for subtitle files; calls [onPicked] with the file's URI. */
+    fun pickSubtitle(onPicked: (String) -> Unit)
+
+    /** Whether the file is still there (recent files that were moved or deleted are greyed out). */
+    fun exists(media: MediaRef): Boolean
+
+    /** A short form of where the file is, shown under its name in the recent list. */
+    fun location(media: MediaRef): String
+}
+
+/** Draws the engine's picture. Each platform draws its own engine's frames. */
+@Composable
+expect fun VideoSurface(engine: PlayerEngine, modifier: Modifier = Modifier)
+
+/** Lets files be dropped on the element (desktop); no effect where there is no drag and drop. */
+expect fun Modifier.mediaDropTarget(onDrop: (List<MediaRef>) -> Unit): Modifier
+
+/** Shows [content] with interface text in [language] (`en` or `hi`). */
+@Composable
+expect fun ProvideLanguage(language: String, content: @Composable () -> Unit)
