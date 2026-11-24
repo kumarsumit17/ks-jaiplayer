@@ -1,0 +1,12 @@
+{
+  "name": "KS JaiPlayer",
+  "group": "media",
+  "icon": "playCircle",
+  "platforms": ["android", "google-tv", "windows", "macos"],
+  "platformStatus": { "windows": "beta" },
+  "stack": "Kotlin Multiplatform",
+  "tagline": {
+    "en": "Media player for phone, TV and desktop, with a native playback engine on each.",
+    "hi": "फ़ोन, TV और डेस्कटॉप के लिए मीडिया प्लेयर, हर प्लेटफ़ॉर्म पर नेटिव प्लेबैक इंजन के साथ।"
+  }
+}
