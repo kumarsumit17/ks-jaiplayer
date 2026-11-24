@@ -10,6 +10,7 @@
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.updates"
-            tools:node="remove" />
+            tools:node="remove"
+            tools:ignore="MissingClass" />
     </application>
 </manifest>
