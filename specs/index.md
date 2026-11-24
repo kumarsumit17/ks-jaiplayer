@@ -23,3 +23,4 @@ okf_version: "0.2"
 
 * [Module layout](module-layout.md) - Which Kotlin Multiplatform module holds what.
 * [Third-party licences](licences.md) - The licence of every playback engine and library KS JaiPlayer uses or considered, and whether it fits the app's MIT licence.
+* [Google Play](google-play.md) - What KS JaiPlayer needs on Google Play, what is ready in the repository, and the steps the owner does in the Play Console.

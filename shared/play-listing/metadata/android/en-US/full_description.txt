@@ -1,0 +1,11 @@
+KS JaiPlayer is a free, open-source player for the videos and music on your phone and your Google TV. It has no ads, no tracking and no account.
+
+• Plays the video and audio files on your device, with subtitles and a choice of audio track.
+• Watch a series episode by episode: open a folder and the next episode starts by itself, in the right order (episode 2 before episode 10).
+• Playback speed from 0.5× to 2×.
+• A Google TV app made for the remote: D-pad navigation, a 10-foot layout, and a built-in browser for your TV's videos and USB drives.
+• Opens videos and stream links handed over by other apps, such as KS StreamFlix.
+• Picture-in-picture on phones.
+• English and Hindi, following your system language or your own choice.
+
+KS JaiPlayer is part of KS-Suite, a set of free, private apps. The source code is on GitHub under the MIT licence: https://github.com/kumarsumit17/ks-jaiplayer
