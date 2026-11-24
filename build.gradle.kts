@@ -78,6 +78,13 @@ subprojects {
                 isMinifyEnabled = false
                 signingConfig = signingConfigs.findByName("release")
             }
+            // The Google Play build (the AABs, ks-utility release workflow `play-build-type`): the
+            // release build without the in-app updater, which Play forbids.
+            buildTypes.create("play") {
+                initWith(buildTypes.getByName("release"))
+                matchingFallbacks += "release"
+            }
+            sourceSets.getByName("play").manifest.srcFile(rootProject.file("shared/android-play/AndroidManifest.xml"))
             compileOptions {
                 sourceCompatibility = JavaVersion.VERSION_17
                 targetCompatibility = JavaVersion.VERSION_17

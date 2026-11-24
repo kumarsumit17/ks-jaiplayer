@@ -18,6 +18,11 @@ fun formFactorOf(context: Context): FormFactor {
     return if (info.metaData?.getString(FORM_FACTOR_KEY) == "tv") FormFactor.Tv else FormFactor.Phone
 }
 
+/** True in the Google Play build (build type `play`): Play updates the app, so it has no updater. */
+fun isPlayBuild(context: Context): Boolean =
+    context.packageManager.getApplicationInfo(context.packageName, PackageManager.GET_META_DATA)
+        .metaData?.getString("com.ks.jaiplayer.STORE") == "play"
+
 /** Each app updates to its own build: the TV app to …-google-tv.apk, the phone app to the plain APK. */
 fun updatePlatformOf(form: FormFactor): UpdatePlatform =
     if (form == FormFactor.Tv) UpdatePlatform.GOOGLE_TV else UpdatePlatform.ANDROID

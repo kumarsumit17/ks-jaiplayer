@@ -36,7 +36,8 @@ import com.ks.jaiplayer.update.GitHubUpdater
 class MainActivity : ComponentActivity() {
     private lateinit var app: JaiPlayerState
     private lateinit var engine: ExoPlayerEngine
-    private lateinit var updater: GitHubUpdater
+    /** Null in the Google Play build, which Play updates. */
+    private var updater: GitHubUpdater? = null
     private var onMediaPicked: ((MediaRef) -> Unit)? = null
     private var onFolderPicked: ((List<MediaRef>) -> Unit)? = null
     private var onSubtitlePicked: ((String) -> Unit)? = null
@@ -67,7 +68,7 @@ class MainActivity : ComponentActivity() {
         val form = formFactorOf(this)
         engine = ExoPlayerEngine(this)
         val settings = PrefsStore(getSharedPreferences("settings", MODE_PRIVATE))
-        updater = androidUpdater(this, settings, updatePlatformOf(form))
+        updater = if (isPlayBuild(this)) null else androidUpdater(this, settings, updatePlatformOf(form))
         app = JaiPlayerState(
             engine = engine,
             host = host(form),
@@ -134,7 +135,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        updater.onForeground()
+        updater?.onForeground()
     }
 
     override fun onStop() {

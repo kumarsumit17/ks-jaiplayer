@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Google Play build (build type "play", the AABs): Play updates the app, so the in-app
+     updater, its permission and its FileProvider are removed, and the build marks itself so the
+     activity starts without the updater. Used by both apps (root build.gradle.kts). -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" tools:node="remove" />
+    <application>
+        <meta-data android:name="com.ks.jaiplayer.STORE" android:value="play" />
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.updates"
+            tools:node="remove" />
+    </application>
+</manifest>

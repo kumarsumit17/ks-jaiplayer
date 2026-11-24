@@ -1,5 +1,6 @@
 # 2026-11-24
 
+* **Update**: [Constraints](constraints.md): the AABs are the Google Play build (`play` build type: no in-app updater, no `REQUEST_INSTALL_PACKAGES`); the APKs keep the updater. Releases also build an Intel dmg (ks-utility v0.7.0 `mac-intel`).
 * **Update**: [Constraints](constraints.md): the Google TV app opens files through an in-app media browser (MediaStore, USB drives included, D-pad navigable) instead of the system picker many TVs lack; http(s) streams in Recent files show their host instead of "File not found".
 * **Update**: [Constraints](constraints.md) and [Module layout](module-layout.md): separate phone and Google TV apps from v1.2.0. `mobile/android` and `tv/google-tv` are application modules with the same package name and keystore (TV versionCode + 1,000,000,000 for Google Play); the activity, manifest, pickers and updates moved to `shared/src/androidMain`; each app updates to its own build (ks-utility v0.6.0 `GOOGLE_TV`). v1.1.0 shipped the new update checker with one APK first, so installed copies choose the right file.
 
