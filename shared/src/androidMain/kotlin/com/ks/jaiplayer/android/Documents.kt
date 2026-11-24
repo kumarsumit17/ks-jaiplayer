@@ -3,7 +3,9 @@ package com.ks.jaiplayer.android
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.provider.DocumentsContract
+import android.provider.MediaStore
 import android.provider.OpenableColumns
 import com.ks.jaiplayer.player.MediaRef
 import com.ks.jaiplayer.player.naturalNameOrder
@@ -61,9 +63,19 @@ internal object Documents {
         context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { it.count > 0 } ?: false
     }.getOrDefault(false)
 
-    /** Where the file is, as far as a content URI tells: the folder part of its document id. */
-    fun location(media: MediaRef): String {
+    /**
+     * Where the file is: for a media-library URI (content://media/…, the TV browser and many
+     * hand-offs) its folder, else the folder part of its document id.
+     */
+    fun location(context: Context, media: MediaRef): String {
         val uri = Uri.parse(media.uri)
+        if (uri.authority == MediaStore.AUTHORITY && Build.VERSION.SDK_INT >= 29) {
+            runCatching {
+                context.contentResolver.query(uri, arrayOf(MediaStore.MediaColumns.RELATIVE_PATH), null, null, null)?.use {
+                    if (it.moveToFirst()) return it.getString(0).orEmpty().trimEnd('/')
+                }
+            }
+        }
         val id = runCatching { DocumentsContract.getDocumentId(uri) }.getOrNull() ?: return uri.path?.substringBeforeLast('/').orEmpty()
         return id.substringAfter(':', id).substringBeforeLast('/', "")
     }

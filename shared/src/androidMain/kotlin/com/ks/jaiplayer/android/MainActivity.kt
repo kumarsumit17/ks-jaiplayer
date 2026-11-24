@@ -9,6 +9,7 @@ import android.os.LocaleList
 import android.util.Rational
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
@@ -77,6 +78,21 @@ class MainActivity : ComponentActivity() {
             plugins = builtInPlugins(),
             updates = updater,
         )
+        // Back closes the browser or the video before it leaves the app. On TV the player's
+        // controls take the remote's keys while they show, so Compose never sees Back then.
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                when {
+                    app.browse != null -> app.browse = null
+                    app.screen == Screen.Player -> app.closePlayer()
+                    else -> {
+                        isEnabled = false
+                        onBackPressedDispatcher.onBackPressed()
+                        isEnabled = true
+                    }
+                }
+            }
+        })
         handleViewIntent(intent)
         setContent {
             // Immersive full screen and screen kept on while a video plays.
@@ -175,7 +191,7 @@ class MainActivity : ComponentActivity() {
         }
 
         override fun exists(media: MediaRef) = Documents.exists(this@MainActivity, media)
-        override fun location(media: MediaRef) = Documents.location(media)
+        override fun location(media: MediaRef) = Documents.location(this@MainActivity, media)
     }
 }
 

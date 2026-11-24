@@ -79,7 +79,8 @@ val languageResources by tasks.registering(Exec::class) {
     inputs.dir(sharedLangDir)
     outputs.dir(langResources)
     val out = langResources.get().asFile
-    commandLine("node", langTool.path, "android", langDir.asFile.path, "--out", out.path)
+    // compose, not android: Compose Multiplatform shows Android escapes (You\'re) as they are (ks-utility v0.5.0).
+    commandLine("node", langTool.path, "compose", langDir.asFile.path, "--out", out.path)
 }
 
 val checkLanguageFiles by tasks.registering(Exec::class) {
