@@ -20,7 +20,6 @@ import androidx.core.view.WindowInsetsControllerCompat
 import com.ks.jaiplayer.player.MediaRef
 import com.ks.jaiplayer.plugins.builtInPlugins
 import com.ks.jaiplayer.settings.SettingsStore
-import com.ks.jaiplayer.tv.isTelevision
 import com.ks.jaiplayer.ui.FormFactor
 import com.ks.jaiplayer.ui.JaiPlayerApp
 import com.ks.jaiplayer.ui.JaiPlayerState
@@ -28,7 +27,11 @@ import com.ks.jaiplayer.ui.PlatformHost
 import com.ks.jaiplayer.ui.Screen
 import com.ks.jaiplayer.update.GitHubUpdater
 
-/** The one activity, for phones and Google TV. The layout follows the device type at runtime. */
+/**
+ * The one activity of both Android apps, declared in this module's manifest. The phone app
+ * (mobile/android) and the Google TV app (tv/google-tv) only add their launcher entry; which one
+ * this is comes from the manifest ([formFactorOf]), never from the device.
+ */
 class MainActivity : ComponentActivity() {
     private lateinit var app: JaiPlayerState
     private lateinit var engine: ExoPlayerEngine
@@ -56,13 +59,13 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        val tv = isTelevision(this)
+        val form = formFactorOf(this)
         engine = ExoPlayerEngine(this)
         val settings = PrefsStore(getSharedPreferences("settings", MODE_PRIVATE))
-        updater = androidUpdater(this, settings)
+        updater = androidUpdater(this, settings, updatePlatformOf(form))
         app = JaiPlayerState(
             engine = engine,
-            host = host(if (tv) FormFactor.Tv else FormFactor.Phone),
+            host = host(form),
             settings = settings,
             systemLanguages = LocaleList.getDefault().let { list -> (0 until list.size()).map { list[it].toLanguageTag() } },
             plugins = builtInPlugins(),

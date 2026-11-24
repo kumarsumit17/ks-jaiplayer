@@ -32,3 +32,58 @@ val appVersionCode: Int =
 
 extra["appVersionName"] = appVersionName
 extra["appVersionCode"] = appVersionCode
+
+// ---- The two Android apps: phone (mobile/android) and Google TV (tv/google-tv) ---------------------
+// Separate APKs and AABs with the same package name, version and keystore, so other KS apps hand
+// playback to com.ks.jaiplayer whichever one is installed, and each updates over itself. Google
+// Play needs a different versionCode for every bundle of one app: the TV app adds TV_CODE_OFFSET,
+// which also stops the phone build from being installed over the TV build (a lower code).
+val TV_CODE_OFFSET = 1_000_000_000
+val keystoreProperties = java.util.Properties().apply {
+    val file = rootProject.file("keystore.properties")
+    if (file.exists()) file.inputStream().use(::load)
+}
+
+// Blank counts as missing: GitHub Actions passes an unset secret as an empty string.
+fun signingValue(env: String, key: String): String? =
+    providers.environmentVariable(env).orNull?.takeIf { it.isNotBlank() }
+        ?: keystoreProperties.getProperty(key)?.takeIf { it.isNotBlank() }
+
+val androidCompileSdk = libs.versions.androidCompileSdk.get().toInt()
+val androidMinSdk = libs.versions.androidMinSdk.get().toInt()
+val androidTargetSdk = libs.versions.androidTargetSdk.get().toInt()
+
+subprojects {
+    plugins.withId("com.android.application") {
+        val tv = path == ":tv:google-tv"
+        extensions.configure<com.android.build.api.dsl.ApplicationExtension> {
+            compileSdk = androidCompileSdk
+            defaultConfig {
+                applicationId = "com.ks.jaiplayer"
+                minSdk = androidMinSdk
+                targetSdk = androidTargetSdk
+                versionCode = appVersionCode + if (tv) TV_CODE_OFFSET else 0
+                versionName = appVersionName
+            }
+            val storeFilePath = signingValue("SIGNING_STORE_FILE", "storeFile")
+            if (storeFilePath != null) {
+                signingConfigs.create("release") {
+                    storeFile = file(storeFilePath)
+                    storePassword = signingValue("SIGNING_STORE_PASSWORD", "storePassword")
+                    keyAlias = signingValue("SIGNING_KEY_ALIAS", "keyAlias")
+                    keyPassword = signingValue("SIGNING_KEY_PASSWORD", "keyPassword")
+                }
+            }
+            buildTypes.getByName("release") {
+                isMinifyEnabled = false
+                signingConfig = signingConfigs.findByName("release")
+            }
+            compileOptions {
+                sourceCompatibility = JavaVersion.VERSION_17
+                targetCompatibility = JavaVersion.VERSION_17
+            }
+            androidResources { localeFilters += listOf("en", "hi") }
+        }
+        dependencies.add("implementation", project(":shared"))
+    }
+}

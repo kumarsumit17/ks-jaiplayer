@@ -57,6 +57,7 @@ kotlin {
         androidMain.get().dependsOn(jvmSharedMain)
         androidMain.dependencies {
             implementation(libs.ks.utility)
+            implementation(libs.androidx.activity.compose)
             implementation(libs.media3.exoplayer)
             implementation(libs.media3.ui.compose)
             implementation(libs.kotlinx.coroutines.android)

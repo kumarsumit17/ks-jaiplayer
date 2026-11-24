@@ -36,6 +36,7 @@ jobs:
       app-name: ks-jaiplayer
       display-name: KS JaiPlayer
       android-module: ":mobile:android"
+      tv-module: ":tv:google-tv"
       mac-module: ":desktop:mac"
       windows-module: ":desktop:windows"
       test-tasks: ":shared:desktopTest :shared:check"

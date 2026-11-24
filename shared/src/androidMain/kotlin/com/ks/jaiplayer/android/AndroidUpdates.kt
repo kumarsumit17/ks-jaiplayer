@@ -6,7 +6,6 @@ import android.net.Uri
 import android.provider.Settings
 import androidx.core.content.FileProvider
 import com.ks.jaiplayer.settings.SettingsStore
-import com.ks.jaiplayer.tv.isTelevision
 import com.ks.jaiplayer.update.GitHubUpdater
 import com.ks.jaiplayer.update.OpenedOn
 import com.ks.jaiplayer.update.UpdateInstaller
@@ -33,10 +32,7 @@ class AndroidInstaller(private val activity: Activity) : UpdateInstaller {
     }
 }
 
-fun androidUpdater(activity: Activity, settings: SettingsStore): GitHubUpdater {
+fun androidUpdater(activity: Activity, settings: SettingsStore, platform: UpdatePlatform): GitHubUpdater {
     val version = runCatching { activity.packageManager.getPackageInfo(activity.packageName, 0).versionName }.getOrNull() ?: "0.0.0"
-    // A TV asks for the TV build (…-google-tv.apk) and a phone for the phone build, so neither
-    // ever installs the other's; while a release has one APK for both, a TV takes that one.
-    val platform = if (isTelevision(activity)) UpdatePlatform.GOOGLE_TV else UpdatePlatform.ANDROID
     return GitHubUpdater(GitHubUpdater.REPO, version, platform, settings, AndroidInstaller(activity)).also { it.start() }
 }

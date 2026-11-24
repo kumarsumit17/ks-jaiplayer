@@ -1,3 +1,7 @@
+# 2026-11-24
+
+* **Update**: [Constraints](constraints.md) and [Module layout](module-layout.md): separate phone and Google TV apps from v1.2.0. `mobile/android` and `tv/google-tv` are application modules with the same package name and keystore (TV versionCode + 1,000,000,000 for Google Play); the activity, manifest, pickers and updates moved to `shared/src/androidMain`; each app updates to its own build (ks-utility v0.6.0 `GOOGLE_TV`). v1.1.0 shipped the new update checker with one APK first, so installed copies choose the right file.
+
 # 2026-11-23
 
 * **Update**: [Constraints](constraints.md): `ACTION_VIEW` also accepts `http`/`https` stream links (ks-streamflix's "Open in KS JaiPlayer"), with plain http allowed and `EXTRA_TITLE` as the name.

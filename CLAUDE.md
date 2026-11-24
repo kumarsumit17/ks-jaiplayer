@@ -20,15 +20,15 @@ Multi-platform media player for Android, Google TV, Windows, and macOS.
 | `:shared` | `shared/src/commonMain` | Player core, plugin API, built-in plugins, the whole UI. **No platform imports.** |
 | | `shared/src/jvmSharedMain` | JVM code for desktop and Android: app updates (ks-utility) |
 | | `shared/src/desktopMain` | libVLC engine (JNA), video surface, desktop app runner |
-| | `shared/src/androidMain` | Media3 ExoPlayer engine, video surface |
+| | `shared/src/androidMain` | Media3 ExoPlayer engine, video surface, and everything both Android apps run: the activity, manifest, pickers, picture-in-picture, updates |
 | `:desktop:mac` | `desktop/mac/` | macOS entry point (menu bar, Finder Open With, VLC.app discovery), dmg |
 | `:desktop:windows` | `desktop/windows/` | Windows entry point (VLC registry discovery), msi |
-| `:mobile:android` | `mobile/android/` | The one APK for phone and TV: activity, pickers, picture-in-picture, updates |
-| `:tv:google-tv` | `tv/google-tv/` | Android library merged into the APK: leanback entry, banner, TV detection |
+| `:mobile:android` | `mobile/android/` | The phone app (APK + AAB): phone launcher entry |
+| `:tv:google-tv` | `tv/google-tv/` | The Google TV app (`-google-tv` APK + AAB): Leanback entry, banner, TV layout |
 
 ## Platform constraints
 - Platform code goes behind the `PlayerEngine` interface (`commonMain`) with `expect`/`actual` `VideoSurface`. Never call ExoPlayer or libVLC from `commonMain`.
-- **One Android APK serves phone and TV.** Declare `android.software.leanback` and `android.hardware.touchscreen` with `required="false"`. The TV layout switches at runtime from `UiModeManager`. TV screens must be D-pad navigable.
+- **Separate phone and Google TV apps.** `mobile/android` and `tv/google-tv` are two application modules with the same package name (`com.ks.jaiplayer`), version and keystore; the TV app's versionCode adds 1,000,000,000 (Google Play needs a different code per bundle). Both only add a launcher entry to what `shared/src/androidMain` declares. The TV app declares `android.software.leanback` required and `android.hardware.touchscreen` not required, and marks itself with the `com.ks.jaiplayer.FORM_FACTOR` meta-data (`formFactorOf`). TV screens must be D-pad navigable. Each app updates to its own build (`UpdatePlatform.GOOGLE_TV` / `ANDROID`).
 - **Desktop needs VLC installed** (libVLC 3.x). Show a clear message if native discovery fails. Don't crash. On macOS libVLC decodes in software (`MAC_VLC_ARGS`), because subtitles cannot be blended onto VideoToolbox frames delivered through callbacks.
 - Keyboard shortcuts on desktop (space, arrows, F for fullscreen) must match the remote's D-pad actions on TV.
 - Implement the `ACTION_VIEW` intent for `video/*` and `audio/*` so other KS apps (`ks-streamflix`, `ks-tv-launcher`) can hand off playback. It accepts `content`, `file`, `http` and `https` URIs; an http(s) link must play without extra headers (ks-streamflix sends signed links), plain http is allowed for home servers, and `EXTRA_TITLE` names it.
@@ -37,7 +37,8 @@ Multi-platform media player for Android, Google TV, Windows, and macOS.
 ```bash
 ./gradlew :shared:desktopTest :shared:check                  # tests and the language-file check
 JAIPLAYER_TEST_MEDIA=<video with 2 audio tracks> ./gradlew :shared:desktopTest   # + real libVLC test
-./gradlew :mobile:android:installDebug                       # Android / Google TV
+./gradlew :mobile:android:installDebug                       # Android phone
+./gradlew :tv:google-tv:installDebug                         # Google TV
 ./gradlew :desktop:mac:run --args="<file or folder>"         # run on macOS
 ./gradlew :desktop:mac:packageReleaseDmg                     # .dmg (on a Mac)
 ./gradlew :desktop:windows:packageReleaseMsi                 # .msi (on Windows / CI)
@@ -46,7 +47,7 @@ Native installers only build on their own OS. Releases use ks-utility's shared r
 
 ## Platform folders
 - Every KS-Suite app repo has the same top-level platform folders: `tv/google-tv/`, `desktop/mac/`, `desktop/windows/`, `mobile/android/` and `mobile/ios/`. All five exist in every app repo, whether or not the app supports that platform yet.
-- This app targets `mobile/android`, `tv/google-tv` (one APK serves both), `desktop/windows` and `desktop/mac`. The other folders are empty on purpose (a `.gitkeep` only): they mark where that platform's code would go, not missing work. Do not add code for a platform that is not a target without the owner asking.
+- This app targets `mobile/android`, `tv/google-tv` (a separate TV app), `desktop/windows` and `desktop/mac`. The other folders are empty on purpose (a `.gitkeep` only): they mark where that platform's code would go, not missing work. Do not add code for a platform that is not a target without the owner asking.
 - Three layers, narrowest first: a platform folder holds code for one platform of this app; `shared/` in the repository root holds code used by two or more platforms of this app, written once and never copied between platform folders; `ks-utility` holds generic code used by several apps. Here `shared/` is the Kotlin Multiplatform module (UI, state, playlist and library logic).
 - The Gradle build follows this layout (see Module layout): platform entry points and packaging in the platform folders, code used by more than one platform in `shared/`.
 - Never rename, merge or remove these folders, and never add another top-level platform folder; the layout is a suite-wide rule.

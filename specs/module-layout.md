@@ -15,6 +15,8 @@ tags: [modules, kmp, architecture]
 | | `shared/src/androidMain` | `ExoPlayerEngine`, the video surface |
 | `:desktop:mac` | `desktop/mac/` | macOS entry point and dmg packaging |
 | `:desktop:windows` | `desktop/windows/` | Windows entry point and msi packaging |
-| `:mobile:android` | `mobile/android/` | The one APK for phones and Google TV |
-| `:tv:google-tv` | `tv/google-tv/` | Android library merged into the APK: leanback launcher entry, banner, TV detection |
+| `:mobile:android` | `mobile/android/` | The phone app: `<app>-v<version>.apk` and `.aab`, with the phone launcher entry |
+| `:tv:google-tv` | `tv/google-tv/` | The Google TV app: `<app>-v<version>-google-tv.apk` and `.aab`, with the Leanback launcher entry and banner |
+
+Both Android apps run the same code from `shared/src/androidMain` (activity, manifest, pickers, picture-in-picture, updates); package name, version and signing are set once for both in the root `build.gradle.kts`.
 | — | `mobile/ios/` | Empty: not a target |
