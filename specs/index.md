@@ -24,3 +24,4 @@ okf_version: "0.2"
 * [Module layout](module-layout.md) - Which Kotlin Multiplatform module holds what.
 * [Third-party licences](licences.md) - The licence of every playback engine and library KS JaiPlayer uses or considered, and whether it fits the app's MIT licence.
 * [Google Play](google-play.md) - What KS JaiPlayer needs on Google Play, what is ready in the repository, and the steps the owner does in the Play Console.
+* [Bundled libVLC and third-party plugins](plan-bundled-vlc-and-plugins.md) - Proposal, awaiting the owner's choice, for shipping libVLC inside the desktop apps and for letting people add their own plugins.

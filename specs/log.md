@@ -1,5 +1,6 @@
 # 2026-11-24
 
+* **Creation**: [Bundled libVLC and third-party plugins](plan-bundled-vlc-and-plugins.md) added: proposal for bundling libVLC (LGPL plugins only, recommended) and desktop-only third-party plugin jars, awaiting the owner's choice.
 * **Creation**: [Google Play](google-play.md) added: the Play bundles, the listing in `shared/play-listing/` (English and Hindi text, icon, feature graphic, TV banner, phone and TV screenshots), `PRIVACY.md`, the Play Console answers and the owner's steps.
 * **Update**: [Constraints](constraints.md): the AABs are the Google Play build (`play` build type: no in-app updater, no `REQUEST_INSTALL_PACKAGES`); the APKs keep the updater. Releases also build an Intel dmg (ks-utility v0.7.0 `mac-intel`).
 * **Update**: [Constraints](constraints.md): the Google TV app opens files through an in-app media browser (MediaStore, USB drives included, D-pad navigable) instead of the system picker many TVs lack; http(s) streams in Recent files show their host instead of "File not found".
