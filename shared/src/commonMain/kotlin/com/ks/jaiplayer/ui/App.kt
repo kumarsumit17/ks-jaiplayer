@@ -26,6 +26,11 @@ fun JaiPlayerApp(app: JaiPlayerState) {
                     Screen.Home -> HomeScreen(app)
                     Screen.Player -> PlayerScreen(app)
                 }
+                val library = app.host.library
+                val mode = app.browse
+                if (library != null && mode != null && app.screen == Screen.Home) {
+                    MediaBrowser(library, mode, onFile = { app.browsed(listOf(it)) }, onFolder = app::browsed, onClose = { app.browse = null })
+                }
                 if (app.showSettings) SettingsDialog(app)
             }
         }

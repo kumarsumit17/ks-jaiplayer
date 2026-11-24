@@ -7,6 +7,11 @@
          playing http(s) stream links handed over by ACTION_VIEW (ks-streamflix). -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- The Google TV app's media browser reads the TV's videos and music (MediaStore), because
+         many TVs have no system file picker. Asked for only when the browser opens. -->
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
     <application
         android:label="KS JaiPlayer"
         android:icon="@drawable/ic_launcher"

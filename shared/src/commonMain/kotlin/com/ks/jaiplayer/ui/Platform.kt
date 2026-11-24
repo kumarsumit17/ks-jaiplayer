@@ -29,6 +29,9 @@ interface PlatformHost {
 
     /** A short form of where the file is, shown under its name in the recent list. */
     fun location(media: MediaRef): String
+
+    /** The device's media library, browsed in the app instead of a picker (the Google TV app); null elsewhere. */
+    val library: MediaLibrary? get() = null
 }
 
 /** Draws the engine's picture. Each platform draws its own engine's frames. */

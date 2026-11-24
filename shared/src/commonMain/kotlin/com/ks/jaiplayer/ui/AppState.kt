@@ -77,9 +77,18 @@ class JaiPlayerState(
         plugins.mediaOpened(list.current)
     }
 
-    fun pickAndOpen() = host.pickMedia(::open)
+    /** The in-app media browser while it is open (the TV app, which often has no system picker). */
+    var browse by mutableStateOf<BrowseMode?>(null)
 
-    fun pickFolderAndOpen() = host.pickFolder { openAll(it) }
+    fun pickAndOpen() { if (host.library != null) browse = BrowseMode.File else host.pickMedia(::open) }
+
+    fun pickFolderAndOpen() { if (host.library != null) browse = BrowseMode.Folder else host.pickFolder { openAll(it) } }
+
+    /** Called by the browser with what was chosen. */
+    fun browsed(items: List<MediaRef>) {
+        browse = null
+        openAll(items)
+    }
 
     fun closePlayer() {
         engine.stop()

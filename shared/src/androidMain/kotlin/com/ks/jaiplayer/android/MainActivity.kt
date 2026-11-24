@@ -23,6 +23,7 @@ import com.ks.jaiplayer.settings.SettingsStore
 import com.ks.jaiplayer.ui.FormFactor
 import com.ks.jaiplayer.ui.JaiPlayerApp
 import com.ks.jaiplayer.ui.JaiPlayerState
+import com.ks.jaiplayer.ui.MediaLibrary
 import com.ks.jaiplayer.ui.PlatformHost
 import com.ks.jaiplayer.ui.Screen
 import com.ks.jaiplayer.update.GitHubUpdater
@@ -50,6 +51,10 @@ class MainActivity : ComponentActivity() {
         Documents.keepAccess(this, tree)
         val items = Documents.mediaInTree(this, tree)
         if (items.isNotEmpty()) onFolderPicked?.invoke(items)
+    }
+    private var onPermission: ((Boolean) -> Unit)? = null
+    private val askPermission = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
+        onPermission?.invoke(result.values.any { it })
     }
     private val pickSubtitle = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri ?: return@registerForActivityResult
@@ -144,6 +149,14 @@ class MainActivity : ComponentActivity() {
 
     private fun host(form: FormFactor) = object : PlatformHost {
         override val formFactor = form
+
+        // Google TV often has no system file picker, so the TV app browses the media library.
+        override val library: MediaLibrary? = if (form == FormFactor.Tv) {
+            AndroidMediaLibrary(this@MainActivity) { permissions, onResult ->
+                onPermission = onResult
+                askPermission.launch(permissions)
+            }
+        } else null
 
         override fun pickMedia(onPicked: (MediaRef) -> Unit) {
             onMediaPicked = onPicked

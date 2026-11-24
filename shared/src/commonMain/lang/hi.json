@@ -42,5 +42,10 @@
   "player.episodeOf": "{total} में से {number}",
   "player.speed": "प्लेबैक स्पीड",
   "player.speedNormal": "नॉर्मल",
-  "home.noMedia": "{name} में कोई वीडियो या ऑडियो फ़ाइल नहीं है।"
+  "home.noMedia": "{name} में कोई वीडियो या ऑडियो फ़ाइल नहीं है।",
+  "browse.filesTitle": "कोई वीडियो या गाना चुनें",
+  "browse.foldersTitle": "कोई सीरीज़ या फ़ोल्डर चुनें",
+  "browse.empty": "इस TV या इसकी USB ड्राइव में कोई वीडियो या संगीत नहीं मिला।",
+  "browse.noAccess": "इस TV के वीडियो और संगीत पढ़ने के लिए KS JaiPlayer को आपकी इजाज़त चाहिए।",
+  "browse.allow": "इजाज़त दें"
 }

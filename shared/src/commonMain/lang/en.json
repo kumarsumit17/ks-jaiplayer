@@ -42,5 +42,10 @@
   "player.episodeOf": "{number} of {total}",
   "player.speed": "Playback speed",
   "player.speedNormal": "Normal",
-  "home.noMedia": "No video or audio files in {name}."
+  "home.noMedia": "No video or audio files in {name}.",
+  "browse.filesTitle": "Choose a video or song",
+  "browse.foldersTitle": "Choose a series or folder",
+  "browse.empty": "No videos or music were found on this TV or its USB drives.",
+  "browse.noAccess": "KS JaiPlayer needs your permission to read the videos and music on this TV.",
+  "browse.allow": "Allow"
 }
