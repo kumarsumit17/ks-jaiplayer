@@ -110,7 +110,8 @@ private fun RecentSection(
 @Composable
 private fun RecentRow(media: MediaRef, host: PlatformHost, open: (MediaRef) -> Unit, remove: (MediaRef) -> Unit) {
     val m = LocalMetrics.current
-    val exists = remember(media) { host.exists(media) }
+    // A stream cannot be checked without the network, so it is never shown as missing.
+    val exists = remember(media) { media.isStream || host.exists(media) }
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainer,
         shape = RoundedCornerShape(10.dp),
@@ -125,7 +126,7 @@ private fun RecentRow(media: MediaRef, host: PlatformHost, open: (MediaRef) -> U
             Column(Modifier.weight(1f).alpha(if (exists) 1f else 0.5f)) {
                 Text(media.title, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Medium)
                 Text(
-                    if (exists) host.location(media) else stringResource(Res.string.home_recent_missing),
+                    if (exists) (if (media.isStream) media.streamHost else host.location(media)) else stringResource(Res.string.home_recent_missing),
                     maxLines = 1, overflow = TextOverflow.Ellipsis,
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

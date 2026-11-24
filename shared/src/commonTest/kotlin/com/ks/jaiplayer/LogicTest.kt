@@ -12,6 +12,8 @@ import com.ks.jaiplayer.settings.resolveLanguage
 import com.ks.jaiplayer.settings.setLanguageChoice
 import com.ks.jaiplayer.ui.actionForKey
 import kotlin.test.Test
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
@@ -97,5 +99,14 @@ class KeysTest {
         assertNull(actionForKey(Key.DirectionCenter, tvControlsShown = true))
         assertEquals(PlayerAction.TogglePlay, actionForKey(Key.MediaPlayPause, tvControlsShown = true))
         assertEquals(PlayerAction.Back, actionForKey(Key.Back, tvControlsShown = true))
+    }
+
+    @Test
+    fun streamLinksAreNotFiles() {
+        val stream = MediaRef("https://user@media.example.com:8096/videos/1/stream?static=true", "Episode 1")
+        assertTrue(stream.isStream)
+        assertEquals("media.example.com:8096", stream.streamHost)
+        assertFalse(MediaRef("content://com.android.providers/document/1", "a").isStream)
+        assertFalse(MediaRef("file:///sdcard/a.mp4", "a").isStream)
     }
 }

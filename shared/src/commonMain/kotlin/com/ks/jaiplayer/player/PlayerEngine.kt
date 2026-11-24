@@ -44,4 +44,10 @@ interface PlayerEngine {
 }
 
 /** A file to play. [uri] is a `file:` URI on desktop and a `file:` or `content:` URI on Android. */
-data class MediaRef(val uri: String, val title: String)
+data class MediaRef(val uri: String, val title: String) {
+    /** An http(s) stream link (handed over by ks-streamflix, for example), not a file on the device. */
+    val isStream: Boolean get() = uri.startsWith("http://", ignoreCase = true) || uri.startsWith("https://", ignoreCase = true)
+
+    /** For a stream: the server's host name, shown where a file shows its folder. */
+    val streamHost: String get() = uri.substringAfter("://").substringBefore('/').substringBefore('?').substringAfterLast('@')
+}
