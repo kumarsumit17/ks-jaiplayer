@@ -115,10 +115,10 @@ Each item names its folder. "New dependency" items are reported as [Dependencies
 ## 3. Decisions for the owner
 
 1. **Versions: decided, one version for every platform.** One plain `vX.Y.Z` tag builds and releases all four builds, which share the version (KS-Suite [versioning-signing](https://github.com/kumarsumit17/KS-Suite/blob/main/specs/versioning-signing.md), "One version for every platform"). The owner first chose one tag per platform (`mac-v`, `windows-v`, `android-v`, `google-tv-v`); that was built (451acf7) and then undone, before any platform tag was released. No platform tags and no bridge release are used for now. Each build is still tuned to its own platform; only the version is shared.
-2. **Phone background audio** (section 2.3): add the media-playback foreground service and its Play declaration, or keep audio stopping when the app leaves the screen.
-3. **Continue watching on Google TV** (section 2.4): add the Watch Next channel (`androidx.tvprovider`), or leave it out.
-4. **New dependencies**: `androidx.media3:media3-session` (needed for every Android media-session item) and, if 3 is yes, `androidx.tvprovider`. Desktop items use JNA, already a dependency.
-5. **Windows SMTC**: build it in this round (largest Windows item, COM through JNA) or after the rest ships.
+2. **Phone background audio: decided yes (2026-11-25).** Audio files keep playing with the screen off or the app in the background, through a `MediaSessionService` with the `mediaPlayback` foreground-service type and its Play Console declaration (section 2.3). Video still pauses, as picture-in-picture covers it.
+3. **Continue watching on Google TV: decided yes (2026-11-25).** The Watch Next channel (`androidx.tvprovider`) lists unfinished files on the Google TV home screen (section 2.4).
+4. **New dependencies: decided.** `androidx.media3:media3-session` (added in step 2) and `androidx.tvprovider` (step 3, since 3 is yes). Desktop items use JNA, already a dependency.
+5. **Windows SMTC: decided later (2026-11-25).** It comes after the other Windows items ship, in its own step; taskbar thumbnail buttons follow it.
 
 ## 4. Build order and testing
 
