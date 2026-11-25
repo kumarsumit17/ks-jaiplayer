@@ -10,11 +10,9 @@ plugins {
 }
 
 // ---- Versioning (never hardcoded) ----------------------------------------------------------------
-// Each platform has its own version (specs/plan-per-platform.md): a tag <platform>-vX.Y.Z releases
-// that platform, a plain vX.Y.Z every platform. Priority: -PversionName / -PversionCode (the release
-// workflow passes them from the tag), then the higher of the platform's latest own tag and the latest
-// plain tag, then a development fallback. The modules read appVersionName.<platform> and
-// appVersionCode.
+// One version for every platform (KS-Suite specs/versioning-signing.md): a plain vX.Y.Z tag releases
+// all four builds. Priority: -PversionName / -PversionCode (the release workflow passes them from the
+// tag), then the latest plain git tag, then a development fallback. The modules read these extras.
 fun git(vararg args: String): String? = runCatching {
     val result = providers.exec {
         commandLine("git", *args)
@@ -23,34 +21,17 @@ fun git(vararg args: String): String? = runCatching {
     if (result.result.get().exitValue == 0) result.standardOutput.asText.get().trim().ifEmpty { null } else null
 }.getOrNull()
 
-fun versionParts(v: String) = v.split('.').map { it.toIntOrNull() ?: 0 }
-fun higherVersion(a: String, b: String): String {
-    val x = versionParts(a)
-    val y = versionParts(b)
-    for (i in 0 until maxOf(x.size, y.size)) {
-        val d = x.getOrElse(i) { 0 } - y.getOrElse(i) { 0 }
-        if (d != 0) return if (d > 0) a else b
-    }
-    return a
-}
-val plainTagVersion: String? = git("describe", "--tags", "--abbrev=0", "--match", "v[0-9]*")?.removePrefix("v")
-
-/** Platforms: android, google-tv, mac, windows (the tag prefixes). */
-fun appVersionNameOf(platform: String): String =
+val appVersionName: String =
     providers.gradleProperty("versionName").orNull
-        ?: listOfNotNull(
-            plainTagVersion,
-            git("describe", "--tags", "--abbrev=0", "--match", "$platform-v[0-9]*")?.removePrefix("$platform-v"),
-        ).reduceOrNull(::higherVersion)
+        ?: git("describe", "--tags", "--abbrev=0", "--match", "v[0-9]*")?.removePrefix("v")
         ?: "0.0.0" // A build from source: no version, so it never checks for updates by itself.
-
 
 val appVersionCode: Int =
     providers.gradleProperty("versionCode").orNull?.toIntOrNull()
         ?: git("rev-list", "--count", "HEAD")?.toIntOrNull()
         ?: 1
 
-for (platform in listOf("android", "google-tv", "mac", "windows")) extra["appVersionName.$platform"] = appVersionNameOf(platform)
+extra["appVersionName"] = appVersionName
 extra["appVersionCode"] = appVersionCode
 
 // ---- The two Android apps: phone (mobile/android) and Google TV (tv/google-tv) ---------------------
@@ -83,7 +64,7 @@ subprojects {
                 minSdk = androidMinSdk
                 targetSdk = androidTargetSdk
                 versionCode = appVersionCode + if (tv) TV_CODE_OFFSET else 0
-                versionName = appVersionNameOf(if (tv) "google-tv" else "android")
+                versionName = appVersionName
             }
             val storeFilePath = signingValue("SIGNING_STORE_FILE", "storeFile")
             if (storeFilePath != null) {

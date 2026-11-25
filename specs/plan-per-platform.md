@@ -1,13 +1,13 @@
 ---
 type: Plan
 title: Per-platform optimization plan
-description: Approved plan for making each KS JaiPlayer build (macOS, Windows, Android phone, Google TV) its own app with its own version, tuned to its OS for look, input, performance, media stack, packaging, OS integrations and accessibility.
+description: Approved plan for tuning each KS JaiPlayer build (macOS, Windows, Android phone, Google TV) to its OS for look, input, performance, media stack, packaging, OS integrations and accessibility, with one shared version.
 tags: [plan, platforms, macos, windows, android, google-tv, accessibility, performance]
 ---
 
 # Per-platform optimization plan
 
-**Status: approved by the owner on 2026-11-25, with option 1a (one tag per platform).** Decisions 2, 3 and 5 are asked again when their step starts; `media3-session` (decision 4) comes with step 2. Built steps are marked in section 4.
+**Status: approved by the owner on 2026-11-25.** Versions: one plain `vX.Y.Z` tag releases all four builds with one shared version (suite rule since 2026-11-25; the owner first chose one tag per platform, then went back to one version). Decisions 2, 3 and 5 are asked again when their step starts; `media3-session` (decision 4) came with step 2. Built steps are marked under section 4.
 
 Goal: each build is the best media player on its platform, not one lowest-common-denominator build. The shared player core, plugin API and interface stay in `shared/` (written once); what differs per OS goes in that platform's folder, or in `shared/src/androidMain` when both Android apps need it (see [Constraints](constraints.md), [Module layout](module-layout.md)).
 
@@ -114,10 +114,7 @@ Each item names its folder. "New dependency" items are reported as [Dependencies
 
 ## 3. Decisions for the owner
 
-1. **Own version per platform.** Today one `vX.Y.Z` tag builds all four. Options:
-   - **(a) Chosen by the owner: one tag per platform**, `mac-vX.Y.Z`, `windows-vX.Y.Z`, `android-vX.Y.Z`, `google-tv-vX.Y.Z`. A tag builds and releases only that platform. Needs, in this order: the suite rule in [versioning-signing](https://github.com/kumarsumit17/KS-Suite/blob/main/specs/versioning-signing.md) and `CLAUDE.md` changed (tags are no longer only `vMAJOR.MINOR.PATCH`), ks-utility's release workflow taking a `platform` input, and ks-utility's app-update helpers reading the newest release whose tag has this platform's prefix (the list endpoint instead of `releases/latest`, which would point at another platform's release). A new ks-utility minor version (v0.10.0), then the apps move their pin. Every other app follows the same scheme in its own plan.
-   - (b) Keep one tag train, but a release carries only the platforms that changed; each platform's version is the last tag that shipped it. Smaller change (the updater still has to skip releases without its asset), but versions jump (Windows 1.2.0 → 1.5.0) and are not really independent.
-   - (c) Keep one version for all four for now; do only the optimizations.
+1. **Versions: decided, one version for every platform.** One plain `vX.Y.Z` tag builds and releases all four builds, which share the version (KS-Suite [versioning-signing](https://github.com/kumarsumit17/KS-Suite/blob/main/specs/versioning-signing.md), "One version for every platform"). The owner first chose one tag per platform (`mac-v`, `windows-v`, `android-v`, `google-tv-v`); that was built (451acf7) and then undone, before any platform tag was released. No platform tags and no bridge release are used for now. Each build is still tuned to its own platform; only the version is shared.
 2. **Phone background audio** (section 2.3): add the media-playback foreground service and its Play declaration, or keep audio stopping when the app leaves the screen.
 3. **Continue watching on Google TV** (section 2.4): add the Watch Next channel (`androidx.tvprovider`), or leave it out.
 4. **New dependencies**: `androidx.media3:media3-session` (needed for every Android media-session item) and, if 3 is yes, `androidx.tvprovider`. Desktop items use JNA, already a dependency.
@@ -129,7 +126,7 @@ Each step is one or more commits on `dev`, tested on its platform before the nex
 
 | Step | What | Where | Tested on |
 |---|---|---|---|
-| 1 | Versioning per platform (if 3.1 a or b) | suite `specs/`, ks-utility (new tag), this repo's workflow and `build.gradle.kts` | ks-utility tests; a rehearsal run per platform |
+| 1 | Versions (decided: one shared version, nothing to build) | this repo's workflow and `build.gradle.kts` | a rehearsal run |
 | 2 | Android media stack: audio focus, noisy, decoder fallback, media session, PiP auto-enter and actions, R8, baseline profile | `shared/src/androidMain`, root build | Phone emulator; every TV emulator 32–100 inch (`scripts/emulators.sh`) |
 | 3 | Google TV: hold-to-seek, frame-rate setting, passthrough and HDR checks, side panels, (Watch Next) | `shared/`, `tv/google-tv` | Every TV emulator; the owner's 55 inch TV for passthrough and frame rate |
 | 4 | Phone: gestures, landscape, PiP polish, (background audio) | `shared/src/androidMain`, `mobile/android` | Phone emulator, a real phone if available |
@@ -138,7 +135,7 @@ Each step is one or more commits on `dev`, tested on its platform before the nex
 | 7 | Accessibility pass on all four, interface text in English and Hindi | `shared/`, each platform | TalkBack (phone, TV), VoiceOver (Mac), Narrator by the owner |
 
 **Built so far (2026-11-25):**
-- Step 1: tags `android-vX.Y.Z`, `google-tv-vX.Y.Z`, `mac-vX.Y.Z` and `windows-vX.Y.Z` release one platform, while a plain `vX.Y.Z` still releases all of them (ks-utility v0.10.0, `platform` input for rehearsals). Each platform's version is the higher of its own latest tag and the latest plain tag (`appVersionName.<platform>`). The updater reads the release list, so a platform release does not have to be "latest".
+- Step 1: one shared version. The per-platform tags built in 451acf7 were undone before any was released: one plain `vX.Y.Z` tag again releases all four builds with one version. Kept from that work: ks-utility v0.10.0, and the updater reading the release list instead of only `releases/latest`, which works the same with plain tags.
 - Step 2, partly: audio focus, pause when headphones are unplugged, decoder fallback, the media session (headset, Bluetooth, remote and Assistant controls, now playing), picture-in-picture auto-enter on Android 12+, and R8 on the release and Play builds (APK about 9 MB → 1.8 MB). Tested on the phone emulator with the R8 build: playback, media-key pause/play, Home into picture-in-picture, no errors. Tested on the 1080p TV emulator (`ks-tv-36`) with the R8 build: playback, the title in the session, the remote's play/pause and the session's play command, the controls with focus, no errors. Every TV size, with the R8 release build signed with the debug key (the owner allowed the batch run): 32, 43, 50, 55, 65, 75 and 85 inch all play, the remote's play/pause works, the controls lay out the same, and nothing crashed. At 100 inch the screenshot showed the video still paused at 0:00, probably the slow 4K emulator's timing; it needs a recheck. Picture-in-picture buttons: on Android 13 and later the window shows play/pause (and previous/next for a series) from the media session; on Android 8 to 12 the app adds its own buttons (back 10 s, play/pause, forward 10 s; `PipActions.kt`), never both. Tested on the Android 16 phone emulator with the R8 build: Home moves the video into the window, its pause and play reach the player, no duplicate buttons. The Android 8 to 12 buttons are built but not run, because no emulator image older than Android 16 is installed. Baseline profile: the APK already carries the profiles Compose and Media3 ship, which Google Play and `profileinstaller` compile. Cold start on the phone emulator, median of five: about 650 ms uncompiled, about 180 ms with them, well under the 800 ms target. So no app-specific profile generator (a benchmark module and new test dependencies) is added for now; it can come later if a real device misses the target. Still to do in step 2: the 100 inch recheck.
 
 Windows cannot be run from this Mac, so step 6 is checked by its CI build, its unit tests and the owner's hand check.

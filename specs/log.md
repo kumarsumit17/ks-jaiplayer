@@ -1,5 +1,6 @@
 # 2026-11-25
 
+* **Update**: [Per-platform optimization plan](plan-per-platform.md): back to one version for every platform (new suite rule). One plain `vX.Y.Z` tag releases all four builds; the per-platform tags and the bridge release are dropped. Each build is still tuned to its platform.
 * **Update**: [Per-platform optimization plan](plan-per-platform.md): picture-in-picture buttons (media session on Android 13+, the app's own on Android 8 to 12); cold start measured with the library baseline profiles (about 180 ms on the emulator), so no app-specific profile generator for now.
 * **Update**: [Per-platform optimization plan](plan-per-platform.md): TV results recorded. The R8 build plays on the 32 to 85 inch emulators with remote play/pause and no crashes; 100 inch needs a recheck.
 * **Update**: [Dependencies](dependencies.md): `androidx.media3:media3-session` 1.11.1 added for the media session of both Android apps (headset, Bluetooth, TV remote, Assistant and picture-in-picture controls); it adds `androidx.media:media` 1.7.0, the rest (media3-common, Guava) was already there. [Constraints](constraints.md): Android audio focus, media session, decoder fallback, picture-in-picture auto-enter and R8. [Per-platform plan](plan-per-platform.md): step 2 tested on the 1080p TV emulator.
