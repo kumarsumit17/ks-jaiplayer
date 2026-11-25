@@ -1,5 +1,6 @@
 # 2026-11-25
 
+* **Creation**: [Desktop engine benchmark](engine-benchmark.md) added: libVLC uses about half the CPU of libmpv in the app's frame path on macOS; the desktop builds stay on libVLC.
 * **Update**: [Bundled libVLC](plan-bundled-vlc-and-plugins.md): libVLC's plugin cache is written into the finished app, so the first start after install takes about 1 s instead of over a minute.
 * **Creation**: [Per-platform optimization plan](plan-per-platform.md) added: an audit of each build and a per-platform plan (look and input, startup, hardware decoding, packaging, media sessions and OS integrations, accessibility) with an own version per platform; approved by the owner with one tag per platform (`mac-v`, `windows-v`, `android-v`, `google-tv-v`).
 * **Update**: [Constraints](constraints.md), [Third-party licences](licences.md) and [Bundled libVLC](plan-bundled-vlc-and-plugins.md): the desktop app plays only through its bundled libVLC and no longer looks for an installed VLC (owner's decision). `JAIPLAYER_VLC_PATH` stays for diagnosis; `-PnoBundledVlc` is gone.

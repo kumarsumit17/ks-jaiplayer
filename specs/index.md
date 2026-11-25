@@ -5,6 +5,7 @@ okf_version: "0.2"
 # Product specifications
 
 * [Overview](overview.md) - What KS JaiPlayer is for, the platforms it runs on and its tech stack.
+* [Desktop engine benchmark](engine-benchmark.md) - Measured comparison of libVLC and libmpv on macOS in KS JaiPlayer's own frame path, and the decision to stay on libVLC for the desktop builds.
 
 # Plans
 
