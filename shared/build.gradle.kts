@@ -60,6 +60,7 @@ kotlin {
             implementation(libs.androidx.activity.compose)
             implementation(libs.media3.exoplayer)
             implementation(libs.media3.ui.compose)
+            implementation(libs.media3.session)
             implementation(libs.kotlinx.coroutines.android)
         }
     }

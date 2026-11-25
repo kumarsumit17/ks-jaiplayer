@@ -2,15 +2,19 @@ package com.ks.jaiplayer.android
 
 import android.content.Context
 import android.net.Uri
+import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.Tracks
+import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import com.ks.jaiplayer.player.MediaRef
+import com.ks.jaiplayer.player.PlayerController.Companion.SEEK_STEP_MS
 import com.ks.jaiplayer.player.clampSpeed
 import com.ks.jaiplayer.player.PlaybackState
 import com.ks.jaiplayer.player.PlaybackStatus
@@ -29,14 +33,28 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 /**
- * The Android and Google TV engine: Media3 ExoPlayer with the device's hardware decoders.
+ * The Android and Google TV engine: Media3 ExoPlayer with the device's hardware decoders. When a
+ * decoder fails, the next one for the format is tried. It takes audio focus (pauses for a call or
+ * another player, lowers its volume for a notification) and pauses when headphones are unplugged.
  * Every call must come from the main thread, as ExoPlayer requires; the interface does that.
  *
  * Track ids are positions in ExoPlayer's track-group list of that type, so they stay valid
  * until the media changes.
  */
 class ExoPlayerEngine(context: Context) : PlayerEngine {
-    internal val player: ExoPlayer = ExoPlayer.Builder(context.applicationContext).build()
+    internal val player: ExoPlayer = ExoPlayer.Builder(
+        context.applicationContext,
+        DefaultRenderersFactory(context.applicationContext).setEnableDecoderFallback(true),
+    )
+        .setAudioAttributes(
+            AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(),
+            /* handleAudioFocus = */ true,
+        )
+        .setHandleAudioBecomingNoisy(true)
+        // The media session's and the remote's skip buttons move as far as the player's arrows.
+        .setSeekBackIncrementMs(SEEK_STEP_MS)
+        .setSeekForwardIncrementMs(SEEK_STEP_MS)
+        .build()
 
     private val _state = MutableStateFlow(PlaybackState())
     override val state: StateFlow<PlaybackState> = _state
@@ -110,7 +128,9 @@ class ExoPlayerEngine(context: Context) : PlayerEngine {
         _state.update {
             PlaybackState(status = PlaybackStatus.Opening, media = media, volume = it.volume, muted = it.muted, speed = it.speed)
         }
-        player.setMediaItem(MediaItem.Builder().setUri(Uri.parse(media.uri)).build())
+        // The title shows in the media session: picture-in-picture, Bluetooth, the TV's now-playing card.
+        val metadata = MediaMetadata.Builder().setTitle(media.title).setDisplayTitle(media.title).build()
+        player.setMediaItem(MediaItem.Builder().setUri(Uri.parse(media.uri)).setMediaMetadata(metadata).build())
         player.prepare()
         player.play()
     }

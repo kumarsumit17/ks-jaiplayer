@@ -4,6 +4,7 @@ import android.app.PictureInPictureParams
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.os.LocaleList
 import android.util.Rational
@@ -15,6 +16,9 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -37,6 +41,7 @@ import com.ks.jaiplayer.update.GitHubUpdater
 class MainActivity : ComponentActivity() {
     private lateinit var app: JaiPlayerState
     private lateinit var engine: ExoPlayerEngine
+    private lateinit var session: PlayerSession
     /** Null in the Google Play build, which Play updates. */
     private var updater: GitHubUpdater? = null
     private var onMediaPicked: ((MediaRef) -> Unit)? = null
@@ -78,6 +83,13 @@ class MainActivity : ComponentActivity() {
             plugins = builtInPlugins(),
             updates = updater,
         )
+        session = PlayerSession(
+            this, engine,
+            hasNext = { app.playlist?.hasNext == true },
+            hasPrevious = { app.playlist?.hasPrevious == true },
+            onNext = app::next,
+            onPrevious = app::previous,
+        )
         // Back closes the browser or the video before it leaves the app. On TV the player's
         // controls take the remote's keys while they show, so Compose never sees Back then.
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
@@ -98,6 +110,15 @@ class MainActivity : ComponentActivity() {
             // Immersive full screen and screen kept on while a video plays.
             LaunchedEffect(Unit) {
                 snapshotFlow { app.screen == Screen.Player }.collect { inPlayer -> applyImmersive(inPlayer) }
+            }
+            LaunchedEffect(Unit) { snapshotFlow { app.playlist }.collect { session.playlistChanged() } }
+            // Phone, Android 12+: swiping home while a video plays moves it to picture-in-picture
+            // smoothly (auto-enter); the params follow the video's shape.
+            if (pipSupported && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) LaunchedEffect(Unit) {
+                combine(snapshotFlow { app.screen == Screen.Player }, engine.state.map { it.isPlaying }) { inPlayer, playing -> inPlayer && playing }
+                    .combine(engine.state.map { engine.videoSize() }) { auto, _ -> auto }
+                    .distinctUntilChanged()
+                    .collect { auto -> setPictureInPictureParams(pipParams(auto)) }
             }
             JaiPlayerApp(app)
         }
@@ -128,14 +149,27 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /** Phone: pressing Home while a video plays continues it in picture-in-picture. */
+    /** Picture-in-picture is for the phone app only. */
+    private val pipSupported: Boolean
+        get() = app.host.formFactor == FormFactor.Phone && packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)
+
+    private fun pipParams(autoEnter: Boolean): PictureInPictureParams {
+        val (w, h) = engine.videoSize()
+        val ratio = if (w > 0 && h > 0) Rational(w, h) else Rational(16, 9)
+        val builder = PictureInPictureParams.Builder().setAspectRatio(clamp(ratio))
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            // Video is not resized seamlessly (that is for other content); the system cross-fades it.
+            builder.setAutoEnterEnabled(autoEnter).setSeamlessResizeEnabled(false)
+        }
+        return builder.build()
+    }
+
+    /** Phone, Android 8–11: pressing Home while a video plays continues it in picture-in-picture. */
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
-        val supported = packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)
-        if (supported && app.host.formFactor == FormFactor.Phone && app.screen == Screen.Player && engine.state.value.isPlaying) {
-            val (w, h) = engine.videoSize()
-            val ratio = if (w > 0 && h > 0) Rational(w, h) else Rational(16, 9)
-            runCatching { enterPictureInPictureMode(PictureInPictureParams.Builder().setAspectRatio(clamp(ratio)).build()) }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) return // auto-enter does it
+        if (pipSupported && app.screen == Screen.Player && engine.state.value.isPlaying) {
+            runCatching { enterPictureInPictureMode(pipParams(autoEnter = false)) }
         }
     }
 
@@ -161,6 +195,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        // A new activity makes its own session, and two sessions may not share an id.
+        session.release()
         if (isFinishing) engine.release()
     }
 

@@ -94,8 +94,12 @@ subprojects {
                     keyPassword = signingValue("SIGNING_KEY_PASSWORD", "keyPassword")
                 }
             }
+            // R8 removes unused code and resources: a smaller APK/AAB and a faster start (also for the
+            // `play` build, which starts from this one). Libraries bring their own keep rules.
             buildTypes.getByName("release") {
-                isMinifyEnabled = false
+                isMinifyEnabled = true
+                isShrinkResources = true
+                proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
                 signingConfig = signingConfigs.findByName("release")
             }
             // The Google Play build (the AABs, ks-utility release workflow `play-build-type`): the
