@@ -21,15 +21,15 @@ Multi-platform media player for Android, Google TV, Windows, and macOS.
 | | `shared/src/jvmSharedMain` | JVM code for desktop and Android: app updates (ks-utility) |
 | | `shared/src/desktopMain` | libVLC engine (JNA), video surface, desktop app runner |
 | | `shared/src/androidMain` | Media3 ExoPlayer engine, video surface, and everything both Android apps run: the activity, manifest, pickers, picture-in-picture, updates |
-| `:desktop:mac` | `desktop/mac/` | macOS entry point (menu bar, Finder Open With, VLC.app discovery), dmg |
-| `:desktop:windows` | `desktop/windows/` | Windows entry point (VLC registry discovery), msi |
+| `:desktop:mac` | `desktop/mac/` | macOS entry point (menu bar, Finder Open With, VLC.app discovery), dmg with bundled libVLC |
+| `:desktop:windows` | `desktop/windows/` | Windows entry point (VLC registry discovery), msi with bundled libVLC |
 | `:mobile:android` | `mobile/android/` | The phone app (APK + AAB): phone launcher entry |
 | `:tv:google-tv` | `tv/google-tv/` | The Google TV app (`-google-tv` APK + AAB): Leanback entry, banner, TV layout |
 
 ## Platform constraints
 - Platform code goes behind the `PlayerEngine` interface (`commonMain`) with `expect`/`actual` `VideoSurface`. Never call ExoPlayer or libVLC from `commonMain`.
 - **Separate phone and Google TV apps.** `mobile/android` and `tv/google-tv` are two application modules with the same package name (`com.ks.jaiplayer`), version and keystore; the TV app's versionCode adds 1,000,000,000 (Google Play needs a different code per bundle). Both only add a launcher entry to what `shared/src/androidMain` declares. The TV app declares `android.software.leanback` required and `android.hardware.touchscreen` not required, and marks itself with the `com.ks.jaiplayer.FORM_FACTOR` meta-data (`formFactorOf`). TV screens must be D-pad navigable. Each app updates to its own build (`UpdatePlatform.GOOGLE_TV` / `ANDROID`).
-- **Desktop needs VLC installed** (libVLC 3.x). Show a clear message if native discovery fails. Don't crash. On macOS libVLC decodes in software (`MAC_VLC_ARGS`), because subtitles cannot be blended onto VideoToolbox frames delivered through callbacks.
+- **Desktop installers carry libVLC 3.x** with only its LGPL plugins (`gradle/bundled-vlc.gradle.kts`, `vlc/VlcBundle.kt`; see [Bundled libVLC](specs/plan-bundled-vlc-and-plugins.md)). The loader tries `JAIPLAYER_VLC_PATH`, then an installed VLC 3.x (it has every plugin), then the bundled copy. Show a clear message only if all of them fail. Don't crash. On macOS libVLC decodes in software (`MAC_VLC_ARGS`), because subtitles cannot be blended onto VideoToolbox frames delivered through callbacks.
 - Keyboard shortcuts on desktop (space, arrows, F for fullscreen) must match the remote's D-pad actions on TV.
 - Implement the `ACTION_VIEW` intent for `video/*` and `audio/*` so other KS apps (`ks-streamflix`, `ks-tv-launcher`) can hand off playback. It accepts `content`, `file`, `http` and `https` URIs; an http(s) link must play without extra headers (ks-streamflix sends signed links), plain http is allowed for home servers, and `EXTRA_TITLE` names it.
 
@@ -43,7 +43,7 @@ JAIPLAYER_TEST_MEDIA=<video with 2 audio tracks> ./gradlew :shared:desktopTest  
 ./gradlew :desktop:mac:packageReleaseDmg                     # .dmg (on a Mac)
 ./gradlew :desktop:windows:packageReleaseMsi                 # .msi (on Windows / CI)
 ```
-Native installers only build on their own OS. Releases use ks-utility's shared release workflow (`.github/workflows/release.yml` calls it). The build needs Node 23.6+ for the language files. `JAIPLAYER_VLC_LOG=<file>` writes libVLC's log for diagnosis.
+Native installers only build on their own OS. Releases use ks-utility's shared release workflow (`.github/workflows/release.yml` calls it). The build needs Node 23.6+ for the language files. `JAIPLAYER_VLC_LOG=<file>` writes libVLC's log for diagnosis (needs an installed VLC: the logging plugin is GPL, so it is not bundled). `-PnoBundledVlc` builds without the bundled libVLC; `JAIPLAYER_TEST_VLC=<folder with lib/ and plugins/>` runs the real libVLC test against another copy, such as `desktop/mac/build/vlc-resources/common/vlc`.
 
 ## Platform folders
 - Every KS-Suite app repo has the same top-level platform folders: `tv/google-tv/`, `desktop/mac/`, `desktop/windows/`, `mobile/android/` and `mobile/ios/`. All five exist in every app repo, whether or not the app supports that platform yet.

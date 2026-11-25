@@ -2,6 +2,7 @@ package com.ks.jaiplayer.windows
 
 import com.ks.jaiplayer.desktop.DesktopConfig
 import com.ks.jaiplayer.desktop.runDesktopApp
+import com.ks.jaiplayer.vlc.BundledVlc
 import com.ks.jaiplayer.vlc.VlcLocation
 import java.io.File
 import java.util.Locale
@@ -11,7 +12,8 @@ import java.util.concurrent.TimeUnit
 fun main(args: Array<String>) {
     runDesktopApp(
         DesktopConfig(
-            vlcLocations = vlcLocations(),
+            // An installed VLC has every plugin, so it comes before the copy bundled with the app.
+            vlcLocations = vlcLocations() + listOfNotNull(BundledVlc.location()),
             systemLanguages = listOf(Locale.getDefault().toLanguageTag()),
             initialFiles = args.map(::File).filter { it.exists() },
         ),

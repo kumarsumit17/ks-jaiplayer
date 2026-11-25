@@ -1,3 +1,8 @@
+# 2026-11-25
+
+* **Update**: [Bundled libVLC and third-party plugins](plan-bundled-vlc-and-plugins.md): section 1 built (owner chose option a). The desktop installers carry libVLC 3.0.24 with only its LGPL plugins, selected from each plugin's declared licence plus a list of plugins that link GPL libraries; `COPYING.LIB` and `PLUGINS.txt` ship with it. Section 2 still awaits the owner.
+* **Update**: [Constraints](constraints.md) and [Third-party licences](licences.md): desktop no longer needs VLC installed; the loader tries `JAIPLAYER_VLC_PATH`, an installed VLC, then the bundled copy.
+
 # 2026-11-24
 
 * **Creation**: [Bundled libVLC and third-party plugins](plan-bundled-vlc-and-plugins.md) added: proposal for bundling libVLC (LGPL plugins only, recommended) and desktop-only third-party plugin jars, awaiting the owner's choice.

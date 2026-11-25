@@ -18,16 +18,18 @@ import kotlin.test.assertTrue
 /**
  * Plays a real file with the installed libVLC. Runs only where VLC.app is installed and
  * JAIPLAYER_TEST_MEDIA names a video of at least 20 s with two audio tracks; skipped otherwise
- * (CI has no VLC).
+ * (CI has no VLC). JAIPLAYER_TEST_VLC=<folder with lib/ and plugins/> tests that libVLC instead,
+ * for example the bundled copy in desktop/mac/build/vlc-resources/common/vlc.
  */
 class VlcEngineIntegrationTest {
     private val vlcApp = File("/Applications/VLC.app")
+    private val vlcDir = System.getenv("JAIPLAYER_TEST_VLC")?.let(::File) ?: File(vlcApp, "Contents/MacOS")
     private val media = System.getenv("JAIPLAYER_TEST_MEDIA")?.let(::File)
 
     private fun engineOrNull(): VlcPlayerEngine? {
-        if (!vlcApp.isDirectory || media?.isFile != true) return null
+        if (!vlcDir.isDirectory || media?.isFile != true) return null
         return VlcPlayerEngine.create(
-            listOf(VlcLocation(File(vlcApp, "Contents/MacOS/lib"), File(vlcApp, "Contents/MacOS/plugins"))),
+            listOf(VlcLocation(File(vlcDir, "lib"), File(vlcDir, "plugins"))),
             // The same options as desktop/mac's entry point (MAC_VLC_ARGS).
             listOf("--codec=avcodec,all", "--avcodec-hw=none"),
         )
@@ -76,16 +78,17 @@ class VlcEngineIntegrationTest {
     }
 
     /** Near-white pixels in the bottom quarter of the latest frame (BGRA). */
-    private fun brightPixelsInBottomQuarter(engine: VlcPlayerEngine): Int = synchronized(engine.frames.lock) {
-        val w = engine.frames.width
-        val h = engine.frames.height
-        val px = engine.frames.pixels
+    private fun brightPixelsInBottomQuarter(engine: VlcPlayerEngine): Int {
+        val frame = engine.frames.frameToDraw() ?: return 0
+        val w = frame.width
+        val h = frame.height
+        val px = frame.memory.getByteArray(0, w * h * 4)
         var n = 0
         for (y in h * 3 / 4 until h) for (x in 0 until w) {
             val i = (y * w + x) * 4
             if ((px[i].toInt() and 0xFF) > 230 && (px[i + 1].toInt() and 0xFF) > 230 && (px[i + 2].toInt() and 0xFF) > 230) n++
         }
-        n
+        return n
     }
 
     @Test fun missingVlcIsReportedNotThrown() {

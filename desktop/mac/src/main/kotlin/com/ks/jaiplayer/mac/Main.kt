@@ -3,6 +3,7 @@ package com.ks.jaiplayer.mac
 import com.ks.jaiplayer.desktop.DesktopConfig
 import com.ks.jaiplayer.desktop.ExternalOpen
 import com.ks.jaiplayer.desktop.runDesktopApp
+import com.ks.jaiplayer.vlc.BundledVlc
 import com.ks.jaiplayer.vlc.VlcLocation
 import java.awt.Desktop
 import java.io.File
@@ -23,7 +24,8 @@ fun main(args: Array<String>) {
 
     runDesktopApp(
         DesktopConfig(
-            vlcLocations = vlcLocations(),
+            // An installed VLC has every plugin, so it comes before the copy bundled with the app.
+            vlcLocations = vlcLocations() + listOfNotNull(BundledVlc.location()),
             vlcArgs = MAC_VLC_ARGS,
             systemLanguages = preferredLanguages(),
             initialFiles = args.map(::File).filter { it.exists() },

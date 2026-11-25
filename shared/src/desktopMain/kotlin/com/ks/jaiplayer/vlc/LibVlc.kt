@@ -19,6 +19,9 @@ internal interface LibVlc : Library {
 
     fun libvlc_media_new_path(instance: Pointer, path: String): Pointer?
     fun libvlc_media_release(media: Pointer)
+    /** Fills a libvlc_media_stats_t (15 four-byte fields); returns 1 when the stats are valid. */
+    fun libvlc_media_get_stats(media: Pointer, stats: Pointer): Int
+    fun libvlc_media_player_get_media(player: Pointer): Pointer?
 
     fun libvlc_media_player_new(instance: Pointer): Pointer?
     fun libvlc_media_player_release(player: Pointer)
