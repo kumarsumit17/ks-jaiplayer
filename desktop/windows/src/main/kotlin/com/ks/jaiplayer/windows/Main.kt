@@ -6,35 +6,23 @@ import com.ks.jaiplayer.vlc.BundledVlc
 import com.ks.jaiplayer.vlc.VlcLocation
 import java.io.File
 import java.util.Locale
-import java.util.concurrent.TimeUnit
 
 /** Windows entry point: the file to play comes as a command-line argument ("Open with"). */
 fun main(args: Array<String>) {
     runDesktopApp(
         DesktopConfig(
-            // An installed VLC has every plugin, so it comes before the copy bundled with the app.
-            vlcLocations = vlcLocations() + listOfNotNull(BundledVlc.location()),
+            vlcLocations = vlcLocations(),
             systemLanguages = listOf(Locale.getDefault().toLanguageTag()),
             initialFiles = args.map(::File).filter { it.exists() },
         ),
     )
 }
 
-/** 64-bit VLC: JAIPLAYER_VLC_PATH, the folder the VLC installer records, then Program Files. */
+/**
+ * The libVLC bundled in the app. JAIPLAYER_VLC_PATH (a VLC folder, for diagnosis only) replaces it;
+ * an installed VLC is never looked for. libVLC finds its "plugins" folder next to libvlc.dll.
+ */
 private fun vlcLocations(): List<VlcLocation> {
-    val dirs = listOfNotNull(
-        System.getenv("JAIPLAYER_VLC_PATH")?.let(::File),
-        registryInstallDir()?.let(::File),
-        System.getenv("ProgramFiles")?.let { File(it, "VideoLAN\\VLC") },
-    )
-    // libVLC finds its plugins in the "plugins" folder next to libvlc.dll by itself.
-    return dirs.distinct().map { VlcLocation(it) }
+    val override = System.getenv("JAIPLAYER_VLC_PATH")?.takeIf { it.isNotBlank() }?.let(::File)
+    return if (override != null) listOf(VlcLocation(override)) else listOfNotNull(BundledVlc.location())
 }
-
-private fun registryInstallDir(): String? = runCatching {
-    val process = ProcessBuilder("reg", "query", "HKLM\\SOFTWARE\\VideoLAN\\VLC", "/v", "InstallDir")
-        .redirectErrorStream(true).start()
-    val text = process.inputStream.bufferedReader().readText()
-    process.waitFor(2, TimeUnit.SECONDS)
-    Regex("InstallDir\\s+REG_SZ\\s+(.+)").find(text)?.groupValues?.get(1)?.trim()
-}.getOrNull()

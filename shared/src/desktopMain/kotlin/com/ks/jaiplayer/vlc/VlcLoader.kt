@@ -5,7 +5,7 @@ import com.sun.jna.Native
 import com.sun.jna.NativeLibrary
 import java.io.File
 
-/** Where an installed VLC keeps libVLC: the folder with `libvlc` and, on macOS, its plugins. */
+/** Where libVLC is: the folder with `libvlc` and, on macOS, its plugins. */
 data class VlcLocation(val libDir: File, val pluginDir: File? = null)
 
 /** libVLC, loaded: the binding and the version string. */

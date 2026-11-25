@@ -56,11 +56,13 @@ object VlcPluginPolicy {
 
 /**
  * Build tool, run by gradle/bundled-vlc.gradle.kts on the OS it packages for:
- * `<download url> <sha256> <download dir> <COPYING.LIB url> <its sha256> <vlc version> <out dir>`.
+ * `<download url> <sha256> <download dir> <COPYING.LIB url> <its sha256> <vlc version> <out dir>`,
+ * or `cache <app dir>` once the app is built (see [writePluginCaches]).
  * Downloads VLC (checked against the pinned SHA-256), keeps libVLC and the LGPL plugins, and
  * writes them with the licence and a plugin list to `<out dir>/common/vlc`.
  */
 fun main(args: Array<String>) {
+    if (args.firstOrNull() == "cache") return writePluginCaches(File(args[1]))
     require(args.size == 7) { "usage: <url> <sha256> <download dir> <licence url> <licence sha256> <version> <out dir>" }
     val (url, sha, downloadDir, licenceUrl, licenceSha) = args
     val version = args[5]
@@ -73,6 +75,8 @@ fun main(args: Array<String>) {
     licence.copyTo(File(out, "COPYING.LIB"), overwrite = true)
     File(out, "PLUGINS.txt").writeText(report.text(version))
     println("Bundled libVLC $version: ${report.kept.size} plugins kept, ${report.excluded.size} left out")
+    // For `run` and the tests, which use this folder in place. The app gets its own (writePluginCaches).
+    writePluginCaches(out.parentFile)
 }
 
 private fun download(url: String, sha: String, dir: File): File {
@@ -107,7 +111,7 @@ private class Report(val kept: List<Pair<String, String>>, val excluded: List<Pa
         appendLine("Included (${kept.size}):")
         kept.forEach { (file, licence) -> appendLine("  $file: $licence") }
         appendLine()
-        appendLine("Left out, so that only LGPL code is shipped (${excluded.size}). An installed VLC is used when present:")
+        appendLine("Left out, so that only LGPL code is shipped (${excluded.size}):")
         excluded.forEach { (file, reason) -> appendLine("  $file: $reason") }
     }
 }
@@ -187,4 +191,32 @@ private fun fromZip(zip: File, out: File): Report {
 private fun run(vararg command: String) {
     val process = ProcessBuilder(*command).inheritIO().start()
     check(process.waitFor() == 0) { "${command.joinToString(" ")} failed" }
+}
+
+/**
+ * Writes libVLC's plugin cache (`plugins/plugins.dat`) into every bundled `vlc` folder under
+ * [root], the finished app. With it, libVLC opens only the plugins a file needs; without it, it
+ * loads all ~300 at every start, and the first start after install, when macOS checks each
+ * plugin's signature, took over a minute. The cache records each plugin's size and time, so it is
+ * written after Compose has signed the app; on macOS the app bundle is then re-sealed (not deep,
+ * so the plugins stay as they are).
+ */
+private fun writePluginCaches(root: File) {
+    val dirs = root.walkTopDown().filter { it.name == "vlc" && File(it, "PLUGINS.txt").isFile }.toList()
+    check(dirs.isNotEmpty()) { "No bundled libVLC under $root" }
+    for (vlc in dirs) {
+        val mac = File(vlc, "lib/libvlc.dylib").isFile
+        val location = if (mac) VlcLocation(File(vlc, "lib"), File(vlc, "plugins")) else VlcLocation(vlc)
+        val loaded = checkNotNull(VlcLoader.load(listOf(location))) { "libVLC in $vlc did not load" }
+        val args = arrayOf("--quiet", "--reset-plugins-cache")
+        val instance = checkNotNull(loaded.lib.libvlc_new(args.size, args)) { "libvlc_new failed in $vlc" }
+        loaded.lib.libvlc_release(instance)
+        check(File(vlc, "plugins/plugins.dat").isFile) { "libVLC wrote no plugin cache in $vlc" }
+        println("Plugin cache written: $vlc")
+        val app = generateSequence(vlc) { it.parentFile }.firstOrNull { it.name.endsWith(".app") }
+        if (app != null) {
+            run("codesign", "--force", "--sign", "-", app.path)
+            run("codesign", "--verify", "--deep", "--strict", app.path)
+        }
+    }
 }

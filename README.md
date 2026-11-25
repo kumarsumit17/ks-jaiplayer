@@ -15,11 +15,11 @@ A multi-platform media player with a shared Kotlin core and native playback engi
 git clone --recurse-submodules <repo-url> ks-jaiplayer
 cd ks-jaiplayer
 ./gradlew :shared:desktopTest           # tests (needs Node 23.6+ for the language files)
-./gradlew :desktop:mac:run              # macOS (needs VLC 3 installed: videolan.org)
+./gradlew :desktop:mac:run              # macOS
 ./gradlew :mobile:android:installDebug  # Android phone or Google TV
 ```
 
-The desktop app plays through an installed VLC 3 (`/Applications/VLC.app`, or `C:\Program Files\VideoLAN\VLC`).
+The desktop app plays through libVLC 3, which the build downloads and bundles with its LGPL plugins. Nothing else needs to be installed.
 
 ## Release
 

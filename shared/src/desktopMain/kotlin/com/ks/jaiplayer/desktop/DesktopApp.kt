@@ -65,7 +65,7 @@ import kotlin.math.abs
 
 /** What differs between the macOS and Windows entry points. */
 class DesktopConfig(
-    /** Where to look for an installed VLC, in order. */
+    /** Where libVLC is, in order: the copy bundled in the app (or a diagnosis override). */
     val vlcLocations: List<VlcLocation>,
     /** libVLC options this platform needs. */
     val vlcArgs: List<String> = emptyList(),

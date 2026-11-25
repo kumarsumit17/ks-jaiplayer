@@ -11,7 +11,7 @@ KS JaiPlayer is MIT-licensed. A component fits when its licence lets an MIT app 
 
 | Component | Used for | Licence | Fits | How it is used |
 |---|---|---|---|---|
-| libVLC 3.x (VideoLAN) | Desktop playback | LGPL-2.1-or-later | Yes | Bundled in the desktop installers as separate libraries (libVLC 3.0.24 and only the plugins that declare LGPL and link no GPL library), with `vlc/COPYING.LIB`, `vlc/PLUGINS.txt` (every plugin kept or left out, and why) and the source links. An installed VLC is used first when present. Never statically linked. See [Bundled libVLC](plan-bundled-vlc-and-plugins.md). |
+| libVLC 3.x (VideoLAN) | Desktop playback | LGPL-2.1-or-later | Yes | Bundled in the desktop installers as separate libraries (libVLC 3.0.24 and only the plugins that declare LGPL and link no GPL library), with `vlc/COPYING.LIB`, `vlc/PLUGINS.txt` (every plugin kept or left out, and why) and the source links. The app uses only this copy, never an installed VLC. Never statically linked. See [Bundled libVLC](plan-bundled-vlc-and-plugins.md). |
 | JNA | Calling libVLC from Kotlin | Apache-2.0 or LGPL-2.1 (dual) | Yes | Used under Apache-2.0. |
 | Media3 ExoPlayer, Media3 UI Compose | Android and Google TV playback | Apache-2.0 | Yes | |
 | Compose Multiplatform, Kotlin, kotlinx-coroutines, AndroidX | UI and runtime | Apache-2.0 | Yes | |

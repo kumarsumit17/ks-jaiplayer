@@ -2,7 +2,6 @@
 // Downloads the pinned VLC build for the OS and chip this runs on, checks its SHA-256, and keeps
 // libVLC with its LGPL plugins in build/vlc-resources (the app's resources, set in each module).
 // The work is done by the build tool in shared/src/desktopMain (vlc/VlcBundle.kt).
-// -PnoBundledVlc skips it, for a build that uses an installed VLC only.
 
 val vlcVersion = "3.0.24"
 val vlcBase = "https://download.videolan.org/pub/videolan/vlc/$vlcVersion"
@@ -24,7 +23,8 @@ val licenceSha = "dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe5
 val vlcResources = layout.buildDirectory.dir("vlc-resources")
 val vlcDownloads = rootProject.layout.buildDirectory.dir("vlc-download")
 
-if (vlcPackage != null && !providers.gradleProperty("noBundledVlc").isPresent) {
+// The app plays only through this copy: an installed VLC is never used.
+if (vlcPackage != null) {
     val bundleVlc = tasks.register<JavaExec>("bundleVlc") {
         description = "Downloads VLC $vlcVersion and keeps libVLC with its LGPL plugins for the installer."
         classpath = project.extensions.getByType<SourceSetContainer>()["main"].runtimeClasspath
@@ -35,4 +35,19 @@ if (vlcPackage != null && !providers.gradleProperty("noBundledVlc").isPresent) {
         outputs.dir(out)
     }
     tasks.matching { it.name == "prepareAppResources" }.configureEach { dependsOn(bundleVlc) }
+
+    // libVLC's plugin cache goes into the finished app, after Compose has signed it, and before the
+    // installer is made from it (the dmg and msi are built from that app image).
+    for (type in listOf("", "Release")) {
+        val appDir = layout.buildDirectory.dir(if (type == "") "compose/binaries/main/app" else "compose/binaries/main-release/app")
+        val cache = tasks.register<JavaExec>("vlcPluginCache$type") {
+            description = "Writes libVLC's plugin cache into the ${type.ifEmpty { "debug" }} app, so it starts fast."
+            classpath = project.extensions.getByType<SourceSetContainer>()["main"].runtimeClasspath
+            mainClass.set("com.ks.jaiplayer.vlc.VlcBundleKt")
+            args("cache", appDir.get().asFile.path)
+            dependsOn("create${type}Distributable")
+        }
+        tasks.matching { it.name.startsWith("package$type") && it.name != "package${type}UberJarForCurrentOS" && (type != "" || !it.name.startsWith("packageRelease")) }
+            .configureEach { dependsOn(cache) }
+    }
 }

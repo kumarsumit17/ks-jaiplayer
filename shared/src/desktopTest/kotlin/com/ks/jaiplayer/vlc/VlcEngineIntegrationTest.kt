@@ -16,14 +16,14 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
- * Plays a real file with the installed libVLC. Runs only where VLC.app is installed and
- * JAIPLAYER_TEST_MEDIA names a video of at least 20 s with two audio tracks; skipped otherwise
- * (CI has no VLC). JAIPLAYER_TEST_VLC=<folder with lib/ and plugins/> tests that libVLC instead,
- * for example the bundled copy in desktop/mac/build/vlc-resources/common/vlc.
+ * Plays a real file with the libVLC the app bundles (run `./gradlew :desktop:mac:bundleVlc` first).
+ * Runs only on a Mac with that copy and with JAIPLAYER_TEST_MEDIA naming a video of at least 20 s
+ * with two audio tracks; skipped otherwise. JAIPLAYER_TEST_VLC=<folder with lib/ and plugins/>
+ * tests another copy.
  */
 class VlcEngineIntegrationTest {
-    private val vlcApp = File("/Applications/VLC.app")
-    private val vlcDir = System.getenv("JAIPLAYER_TEST_VLC")?.let(::File) ?: File(vlcApp, "Contents/MacOS")
+    private val vlcDir = System.getenv("JAIPLAYER_TEST_VLC")?.let(::File)
+        ?: File("../desktop/mac/build/vlc-resources/common/vlc").absoluteFile
     private val media = System.getenv("JAIPLAYER_TEST_MEDIA")?.let(::File)
 
     private fun engineOrNull(): VlcPlayerEngine? {

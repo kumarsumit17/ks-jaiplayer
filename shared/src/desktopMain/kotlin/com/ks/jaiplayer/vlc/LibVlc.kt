@@ -6,7 +6,7 @@ import com.sun.jna.Pointer
 
 /**
  * The part of the libVLC 3.x C API that KS JaiPlayer uses, called through JNA. libVLC is
- * LGPL-2.1+ and is loaded at run time from an installed VLC; nothing is linked statically.
+ * LGPL-2.1+ and is loaded at run time from the copy bundled in the app; nothing is linked statically.
  *
  * Names and arguments follow `vlc/libvlc*.h` of VLC 3.0. Pointers to libVLC objects are opaque.
  */
