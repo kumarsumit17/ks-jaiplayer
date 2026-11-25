@@ -1,5 +1,6 @@
 # 2026-11-25
 
+* **Update**: [Dependencies](dependencies.md): `androidx.media3:media3-session` 1.11.1 added for the media session of both Android apps (headset, Bluetooth, TV remote, Assistant and picture-in-picture controls); it adds `androidx.media:media` 1.7.0, the rest (media3-common, Guava) was already there. [Constraints](constraints.md): Android audio focus, media session, decoder fallback, picture-in-picture auto-enter and R8. [Per-platform plan](plan-per-platform.md): step 2 tested on the 1080p TV emulator.
 * **Update**: [Per-platform plan](plan-per-platform.md): step 1 built (one tag per platform, ks-utility v0.10.0) and step 2 partly built (Android audio focus, media session, decoder fallback, picture-in-picture auto-enter, R8).
 * **Creation**: [Desktop engine benchmark](engine-benchmark.md) added: libVLC uses about half the CPU of libmpv in the app's frame path on macOS; the desktop builds stay on libVLC.
 * **Update**: [Bundled libVLC](plan-bundled-vlc-and-plugins.md): libVLC's plugin cache is written into the finished app, so the first start after install takes about 1 s instead of over a minute.
