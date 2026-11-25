@@ -18,9 +18,7 @@ import com.ks.jaiplayer.desktop.collectMedia
 import com.ks.jaiplayer.desktop.mediaRefOf
 import com.ks.jaiplayer.player.MediaRef
 import com.ks.jaiplayer.player.PlayerEngine
-import com.ks.jaiplayer.vlc.FrameStats
 import com.ks.jaiplayer.vlc.VlcPlayerEngine
-import com.sun.jna.Pointer
 import org.jetbrains.skia.ColorAlphaType
 import org.jetbrains.skia.ColorType
 import org.jetbrains.skia.FilterMipmap
@@ -28,7 +26,6 @@ import org.jetbrains.skia.FilterMode
 import org.jetbrains.skia.Image
 import org.jetbrains.skia.ImageInfo
 import org.jetbrains.skia.MipmapMode
-import org.jetbrains.skia.Pixmap
 import org.jetbrains.skia.Rect
 import java.io.File
 import java.net.URI
@@ -42,27 +39,23 @@ actual fun VideoSurface(engine: PlayerEngine, modifier: Modifier) {
     val frames = (engine as? VlcPlayerEngine)?.frames ?: return
     Canvas(modifier) {
         frames.version.longValue // Read while drawing: a new frame redraws, without recomposing.
-        val start = System.nanoTime()
-        val frame = frames.frameToDraw() ?: return@Canvas
-        val w = frame.width
-        val h = frame.height
-        // Wraps libVLC's buffer without copying; VideoFrames keeps it unchanged while it is shown.
-        val info = ImageInfo(w, h, ColorType.BGRA_8888, ColorAlphaType.OPAQUE)
-        val pixmap = Pixmap.make(info, Pointer.nativeValue(frame.memory), w * 4)
-        val image = Image.makeFromPixmap(pixmap)
-        val scale = min(size.width / w, size.height / h)
-        val dw = w * scale
-        val dh = h * scale
-        val left = (size.width - dw) / 2
-        val top = (size.height - dh) / 2
-        drawIntoCanvas {
-            it.nativeCanvas.drawImageRect(
-                image, Rect.makeWH(w.toFloat(), h.toFloat()), Rect.makeXYWH(left, top, dw, dh), sampling, null, true,
-            )
+        synchronized(frames.lock) {
+            val w = frames.width
+            val h = frames.height
+            if (w == 0 || h == 0 || frames.pixels.size != w * h * 4) return@Canvas
+            val image = Image.makeRaster(ImageInfo(w, h, ColorType.BGRA_8888, ColorAlphaType.OPAQUE), frames.pixels, w * 4)
+            val scale = min(size.width / w, size.height / h)
+            val dw = w * scale
+            val dh = h * scale
+            val left = (size.width - dw) / 2
+            val top = (size.height - dh) / 2
+            drawIntoCanvas {
+                it.nativeCanvas.drawImageRect(
+                    image, Rect.makeWH(w.toFloat(), h.toFloat()), Rect.makeXYWH(left, top, dw, dh), sampling, null, true,
+                )
+            }
+            image.close()
         }
-        image.close()
-        pixmap.close()
-        FrameStats.frameDrawn(System.nanoTime() - start)
     }
 }
 

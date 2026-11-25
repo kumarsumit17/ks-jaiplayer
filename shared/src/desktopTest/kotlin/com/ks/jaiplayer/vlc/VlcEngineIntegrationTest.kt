@@ -78,17 +78,16 @@ class VlcEngineIntegrationTest {
     }
 
     /** Near-white pixels in the bottom quarter of the latest frame (BGRA). */
-    private fun brightPixelsInBottomQuarter(engine: VlcPlayerEngine): Int {
-        val frame = engine.frames.frameToDraw() ?: return 0
-        val w = frame.width
-        val h = frame.height
-        val px = frame.memory.getByteArray(0, w * h * 4)
+    private fun brightPixelsInBottomQuarter(engine: VlcPlayerEngine): Int = synchronized(engine.frames.lock) {
+        val w = engine.frames.width
+        val h = engine.frames.height
+        val px = engine.frames.pixels
         var n = 0
         for (y in h * 3 / 4 until h) for (x in 0 until w) {
             val i = (y * w + x) * 4
             if ((px[i].toInt() and 0xFF) > 230 && (px[i + 1].toInt() and 0xFF) > 230 && (px[i + 2].toInt() and 0xFF) > 230) n++
         }
-        return n
+        n
     }
 
     @Test fun missingVlcIsReportedNotThrown() {

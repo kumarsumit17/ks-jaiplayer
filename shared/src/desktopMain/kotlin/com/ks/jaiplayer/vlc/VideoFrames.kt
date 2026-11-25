@@ -5,32 +5,22 @@ import com.sun.jna.Memory
 import com.sun.jna.Pointer
 
 /**
- * Receives decoded frames from libVLC's video callbacks and hands the newest one to the surface,
- * without copying it.
+ * Receives decoded frames from libVLC's video callbacks and keeps the latest one for drawing.
  *
- * Three native buffers rotate: libVLC decodes into one, one holds the newest finished frame, and
- * one is on screen. The surface draws straight from the buffer's memory, and that buffer is not
- * given back to libVLC until the surface has moved on to a newer frame (the window may render
- * a recorded frame after the draw call returns). The decoder and the window never wait for each
- * other: the lock only guards the three indices. The pixel format is `RV32`, which is BGRA in
- * memory on every platform the app runs on.
+ * libVLC decodes into [buffer] (native memory) on its own thread; on `display` the frame is
+ * copied into [pixels] under [lock], and [version] changes so the surface redraws. The pixel
+ * format is `RV32`, which is BGRA in memory on every platform the app runs on.
  */
 internal class VideoFrames {
-    /** One decoded frame: its memory (kept referenced while shown) and its size. */
-    class Frame(val memory: Memory, val width: Int, val height: Int)
-
-    private val lock = Any()
+    val lock = Any()
     @Volatile var width = 0; private set
     @Volatile var height = 0; private set
-
-    private var buffers: Array<Memory> = emptyArray()
-    private var writing = -1
-    private var latest = -1
-    private var shown: Frame? = null
-    private var shownIndex = -1
+    var pixels = ByteArray(0); private set
 
     /** Bumped for every frame; the surface reads it while drawing, so only drawing repeats. */
     val version = mutableLongStateOf(0L)
+
+    private var buffer: Memory? = null
 
     // JNA callbacks must stay strongly referenced while libVLC can call them.
     val format = LibVlc.FormatCallback { _, chroma, w, h, pitches, lines ->
@@ -40,67 +30,36 @@ internal class VideoFrames {
         pitches.setInt(0, fw * 4)
         lines.setInt(0, fh)
         synchronized(lock) {
-            buffers = Array(BUFFERS) { Memory(fw.toLong() * fh * 4) }
-            writing = -1
-            latest = -1
-            shownIndex = -1 // The old shown frame keeps its own memory alive until replaced.
+            buffer = Memory(fw.toLong() * fh * 4)
+            pixels = ByteArray(fw * fh * 4)
             width = fw
             height = fh
         }
-        1 // One picture at a time: libVLC locks, fills and displays it before the next lock.
+        1
     }
 
     val cleanup = LibVlc.CleanupCallback { clear() }
 
     val lockFrame = LibVlc.LockCallback { _, planes ->
-        val memory = synchronized(lock) {
-            val i = (0 until buffers.size).firstOrNull { it != latest && it != shownIndex }
-            writing = i ?: -1
-            i?.let { buffers[it] }
-        }
-        planes.setPointer(0, memory ?: Pointer.NULL)
+        planes.setPointer(0, buffer ?: Pointer.NULL)
         null
     }
 
     val display = LibVlc.DisplayCallback { _, _ ->
-        val delivered = synchronized(lock) {
-            if (writing < 0) return@synchronized false
-            latest = writing
-            writing = -1
-            true
-        }
-        if (delivered) {
+        val b = buffer
+        if (b != null) {
+            synchronized(lock) { if (pixels.size.toLong() == b.size()) b.read(0, pixels, 0, pixels.size) }
             version.longValue++
-            FrameStats.frameDecoded()
         }
-    }
-
-    /**
-     * The frame to draw now: the newest one, which stays reserved until the next call, so its
-     * memory is not overwritten while the window renders it. Null when there is no picture.
-     */
-    fun frameToDraw(): Frame? = synchronized(lock) {
-        if (latest >= 0 && latest != shownIndex) {
-            shownIndex = latest
-            shown = Frame(buffers[latest], width, height)
-        }
-        shown?.takeIf { width > 0 }
     }
 
     fun clear() {
         synchronized(lock) {
             width = 0
             height = 0
-            buffers = emptyArray()
-            writing = -1
-            latest = -1
-            shownIndex = -1
-            shown = null
+            buffer = null
+            pixels = ByteArray(0)
         }
         version.longValue++
-    }
-
-    private companion object {
-        const val BUFFERS = 3
     }
 }

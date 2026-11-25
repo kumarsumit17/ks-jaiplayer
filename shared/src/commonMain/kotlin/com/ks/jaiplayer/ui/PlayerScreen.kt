@@ -335,8 +335,7 @@ private fun EpisodeMenu(app: JaiPlayerState, list: Playlist) {
 private fun SeekBar(state: PlaybackState, controller: PlayerController) {
     val form = LocalFormFactor.current
     val focusManager = LocalFocusManager.current
-    // While the thumb is dragged the bar shows the drag position and the picture follows it
-    // (engines coalesce the seeks); letting go seeks to the exact spot.
+    // While the thumb is dragged the bar shows the drag position, and seeks when it is let go.
     var dragging by remember { mutableStateOf<Float?>(null) }
     val duration = state.durationMs.coerceAtLeast(1)
     val fraction = dragging ?: (state.positionMs.toFloat() / duration).coerceIn(0f, 1f)
@@ -345,10 +344,7 @@ private fun SeekBar(state: PlaybackState, controller: PlayerController) {
         TimeText(formatPlaybackTime(shownMs))
         Slider(
             value = fraction,
-            onValueChange = {
-                dragging = it
-                controller.seekTo((it * duration).toLong())
-            },
+            onValueChange = { dragging = it },
             onValueChangeFinished = {
                 dragging?.let { controller.seekTo((it * duration).toLong()) }
                 dragging = null

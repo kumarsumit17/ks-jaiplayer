@@ -21,7 +21,6 @@ import kotlinx.coroutines.launch
 import java.io.File
 import java.net.URI
 import java.util.concurrent.Executors
-import java.util.concurrent.atomic.AtomicLong
 
 /**
  * The desktop engine (macOS and Windows): libVLC 3.x, drawing through video callbacks.
@@ -52,16 +51,13 @@ class VlcPlayerEngine private constructor(
     private var wantedMute = false
     private var wantedSpeed = 1f
     private var everPlayed = false
-    private val pendingSeek = AtomicLong(-1)
-    @Volatile private var seekTarget = -1L
-    @Volatile private var seekShownUntil = 0L
 
     /** The libVLC version in use, or null when it could not be loaded. */
     val vlcVersion: String? = vlc?.version
 
     init {
         if (lib != null) scope.launch {
-            val args = vlcArgs(withStats = FrameStats.enabled || STATS_ARG in extraArgs) + extraArgs.filter { it != STATS_ARG }
+            val args = vlcArgs() + extraArgs
             val inst = lib.libvlc_new(args.size, args)
             val mp = inst?.let(lib::libvlc_media_player_new)
             if (inst == null || mp == null) {
@@ -123,14 +119,7 @@ class VlcPlayerEngine private constructor(
 
     override fun seekTo(positionMs: Long) {
         _state.update { it.copy(positionMs = positionMs) }
-        seekShownUntil = System.nanoTime() + SEEK_SETTLE_NS
-        seekTarget = positionMs
-        // Seeks are coalesced: while one runs, newer requests replace each other, and only the
-        // last one is sent. Dragging the bar or holding an arrow key never builds a queue.
-        if (pendingSeek.getAndSet(positionMs) < 0) call { mp ->
-            val target = pendingSeek.getAndSet(-1)
-            if (target >= 0) libvlc_media_player_set_time(mp, target)
-        }
+        call { mp -> libvlc_media_player_set_time(mp, positionMs) }
     }
 
     override fun setVolume(volume: Int) {
@@ -184,20 +173,6 @@ class VlcPlayerEngine private constructor(
         }
     }
 
-    /** libVLC's counters for the current media (only with statistics on), read on the libVLC thread. */
-    internal suspend fun stats(): VlcStats? = kotlinx.coroutines.withContext(scope.coroutineContext) {
-        val l = lib ?: return@withContext null
-        val media = player?.let(l::libvlc_media_player_get_media) ?: return@withContext null
-        val mem = com.sun.jna.Memory(15L * 4)
-        val ok = l.libvlc_media_get_stats(media, mem) != 0
-        l.libvlc_media_release(media)
-        if (!ok) null else VlcStats(
-            decodedVideo = mem.getInt(6L * 4), decodedAudio = mem.getInt(7L * 4),
-            displayedPictures = mem.getInt(8L * 4), lostPictures = mem.getInt(9L * 4),
-            playedAudioBuffers = mem.getInt(10L * 4), lostAudioBuffers = mem.getInt(11L * 4),
-        )
-    }
-
     // ---- State polling -------------------------------------------------------------------------
 
     private suspend fun poll() {
@@ -228,13 +203,7 @@ class VlcPlayerEngine private constructor(
                 }
                 val refreshTracks = vlcState != lastVlcState || ticks % 5 == 0
                 val length = l.libvlc_media_player_get_length(mp).coerceAtLeast(0)
-                val polled = if (status == PlaybackStatus.Ended) length else l.libvlc_media_player_get_time(mp).coerceAtLeast(0)
-                // Just after a seek libVLC may still report the old time; keep showing the target
-                // until it arrives (or a moment passes), so the bar never jumps back and forth.
-                val settling = seekTarget >= 0 && System.nanoTime() < seekShownUntil &&
-                    kotlin.math.abs(polled - seekTarget) > SEEK_NEAR_MS
-                if (!settling) seekTarget = -1
-                val time = if (settling) current.positionMs else polled
+                val time = if (status == PlaybackStatus.Ended) length else l.libvlc_media_player_get_time(mp).coerceAtLeast(0)
                 _state.update {
                     var next = it.copy(
                         status = status,
@@ -284,19 +253,13 @@ class VlcPlayerEngine private constructor(
 
     companion object {
         private const val POLL_MS = 200L
-        private const val SEEK_SETTLE_NS = 1_500_000_000L
-        private const val SEEK_NEAR_MS = 1_000L
         private val PLAYING_STATES = setOf(LibVlc.STATE_PLAYING, LibVlc.STATE_PAUSED)
-        private val VLC_ARGS = arrayOf("--no-video-title-show", "--no-snapshot-preview")
-
-        /** Passed in extra arguments (tests) to collect libVLC's playback statistics; see [stats]. */
-        internal const val STATS_ARG = "--stats"
+        private val VLC_ARGS = arrayOf("--no-video-title-show", "--no-snapshot-preview", "--no-stats")
 
         /** For diagnosing playback problems: JAIPLAYER_VLC_LOG=<file> writes libVLC's detailed log there. */
-        private fun vlcArgs(withStats: Boolean): Array<String> {
-            val base = if (withStats) VLC_ARGS else VLC_ARGS + "--no-stats"
+        private fun vlcArgs(): Array<String> {
             val log = System.getenv("JAIPLAYER_VLC_LOG")?.takeIf { it.isNotBlank() }
-            return if (log == null) base + "--quiet" else base + arrayOf("--file-logging", "--logfile=$log", "--log-verbose=2")
+            return if (log == null) VLC_ARGS + "--quiet" else VLC_ARGS + arrayOf("--file-logging", "--logfile=$log", "--log-verbose=2")
         }
 
         /** Loads libVLC from the first working [locations]; without one, the engine reports [PlayerError.EngineMissing]. */
@@ -304,13 +267,3 @@ class VlcPlayerEngine private constructor(
             VlcPlayerEngine(VlcLoader.load(locations), extraArgs)
     }
 }
-
-/** A few of libVLC's playback counters (libvlc_media_stats_t), totals since the media opened. */
-internal data class VlcStats(
-    val decodedVideo: Int,
-    val decodedAudio: Int,
-    val displayedPictures: Int,
-    val lostPictures: Int,
-    val playedAudioBuffers: Int,
-    val lostAudioBuffers: Int,
-)
