@@ -1,5 +1,6 @@
 # 2026-11-25
 
+* **Update**: [Dependencies](dependencies.md): new dependency `androidx.tvprovider:tvprovider` 1.1.0 (Apache-2.0), owner's decision 3 in the per-platform plan: writes the Google TV Watch Next row, which has no platform API without it. Adds only `jspecify` 1.0.0; `androidx.annotation` and `androidx.core` were already in the tree.
 * **Update**: [Per-platform optimization plan](plan-per-platform.md): step 3 (Google TV) built: Continue watching row, hold to seek, up/down show the controls, frame-rate matching switch. [Plugins](plugins.md): new built-in Resume plugin.
 * **Update**: [Per-platform optimization plan](plan-per-platform.md): owner's decisions. Background audio on the phone and the Continue watching row on Google TV: yes (`androidx.tvprovider` added). Windows SMTC: after the other Windows items. [Bundled libVLC and third-party plugins](plan-bundled-vlc-and-plugins.md): section 2 (desktop plugin jars) approved.
 * **Update**: [Per-platform optimization plan](plan-per-platform.md): back to one version for every platform (new suite rule). One plain `vX.Y.Z` tag releases all four builds; the per-platform tags and the bridge release are dropped. Each build is still tuned to its platform.
