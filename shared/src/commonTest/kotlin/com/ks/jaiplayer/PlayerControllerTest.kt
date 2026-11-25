@@ -82,8 +82,8 @@ class PlayerControllerTest {
         val e = FakeEngine(playing())
         val c = PlayerController(e)
         c.perform(PlayerAction.Faster); assertEquals(1.25f, e.state.value.speed)
-        repeat(10) { c.perform(PlayerAction.Faster) }; assertEquals(2f, e.state.value.speed)
-        repeat(10) { c.perform(PlayerAction.Slower) }; assertEquals(0.5f, e.state.value.speed)
+        repeat(20) { c.perform(PlayerAction.Faster) }; assertEquals(4f, e.state.value.speed)
+        repeat(20) { c.perform(PlayerAction.Slower) }; assertEquals(0.25f, e.state.value.speed)
     }
 
     @Test fun fullScreenAndBackAreLeftToTheInterface() {

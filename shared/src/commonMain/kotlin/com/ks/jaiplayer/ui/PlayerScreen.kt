@@ -56,6 +56,9 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.TextButton
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -84,6 +87,9 @@ import androidx.compose.runtime.CompositionLocalProvider
 import com.ks.jaiplayer.player.Playlist
 import com.ks.jaiplayer.player.formatSpeed
 import com.ks.jaiplayer.player.playbackSpeeds
+import com.ks.jaiplayer.player.stepSpeed
+import com.ks.jaiplayer.player.MIN_SPEED
+import com.ks.jaiplayer.player.MAX_SPEED
 import com.ks.jaiplayer.plugin.ControlSlot
 import com.ks.jaiplayer.resources.player_episode_of
 import com.ks.jaiplayer.resources.player_episodes
@@ -91,6 +97,8 @@ import com.ks.jaiplayer.resources.player_next
 import com.ks.jaiplayer.resources.player_previous
 import com.ks.jaiplayer.resources.player_speed
 import com.ks.jaiplayer.resources.player_speed_normal
+import com.ks.jaiplayer.resources.player_speed_slower
+import com.ks.jaiplayer.resources.player_speed_faster
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -315,10 +323,42 @@ private fun PluginControls(app: JaiPlayerState, slot: ControlSlot, state: Playba
 @Composable
 private fun SpeedMenu(app: JaiPlayerState, state: PlaybackState) {
     TextControlMenu(formatSpeed(state.speed), stringResource(Res.string.player_speed)) { close ->
+        // Fine control first: − and + move by 0.05× and keep the menu open, so any speed from
+        // 0.25× to 4× can be set; the usual speeds follow as one-tap choices.
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+        ) {
+            SpeedStepButton("−", stringResource(Res.string.player_speed_slower), state.speed > MIN_SPEED) {
+                app.engine.setSpeed(stepSpeed(app.engine.state.value.speed, faster = false))
+            }
+            Text(
+                formatSpeed(state.speed),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.width(72.dp),
+            )
+            SpeedStepButton("+", stringResource(Res.string.player_speed_faster), state.speed < MAX_SPEED) {
+                app.engine.setSpeed(stepSpeed(app.engine.state.value.speed, faster = true))
+            }
+        }
+        HorizontalDivider()
         playbackSpeeds.forEach { speed ->
             val text = if (speed == 1f) "${formatSpeed(speed)}  ·  ${stringResource(Res.string.player_speed_normal)}" else formatSpeed(speed)
             MenuChoice(text, kotlin.math.abs(state.speed - speed) < 0.001f) { app.engine.setSpeed(speed); close() }
         }
+    }
+}
+
+@Composable
+private fun SpeedStepButton(symbol: String, label: String, enabled: Boolean, onClick: () -> Unit) {
+    TextButton(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier.semantics { contentDescription = label }.tvFocusRing(RoundedCornerShape(20.dp)),
+    ) {
+        Text(symbol, style = MaterialTheme.typography.titleLarge)
     }
 }
 
@@ -335,7 +375,8 @@ private fun EpisodeMenu(app: JaiPlayerState, list: Playlist) {
 private fun SeekBar(state: PlaybackState, controller: PlayerController) {
     val form = LocalFormFactor.current
     val focusManager = LocalFocusManager.current
-    // While the thumb is dragged the bar shows the drag position, and seeks when it is let go.
+    // While the thumb is dragged the bar shows the drag position and the picture follows it
+    // (engines coalesce the seeks); letting go seeks to the exact spot.
     var dragging by remember { mutableStateOf<Float?>(null) }
     val duration = state.durationMs.coerceAtLeast(1)
     val fraction = dragging ?: (state.positionMs.toFloat() / duration).coerceIn(0f, 1f)
@@ -344,7 +385,10 @@ private fun SeekBar(state: PlaybackState, controller: PlayerController) {
         TimeText(formatPlaybackTime(shownMs))
         Slider(
             value = fraction,
-            onValueChange = { dragging = it },
+            onValueChange = {
+                dragging = it
+                controller.seekTo((it * duration).toLong())
+            },
             onValueChangeFinished = {
                 dragging?.let { controller.seekTo((it * duration).toLong()) }
                 dragging = null

@@ -42,6 +42,8 @@
   "player.episodeOf": "{number} of {total}",
   "player.speed": "Playback speed",
   "player.speedNormal": "Normal",
+  "player.speedSlower": "Slower",
+  "player.speedFaster": "Faster",
   "home.noMedia": "No video or audio files in {name}.",
   "browse.filesTitle": "Choose a video or song",
   "browse.foldersTitle": "Choose a series or folder",

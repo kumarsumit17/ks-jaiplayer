@@ -13,6 +13,7 @@ okf_version: "0.2"
 # Specifications
 
 * [Plugins](plugins.md) - The minimal core of KS JaiPlayer and the plugin API that adds every other feature, with the built-in plugins.
+* [Smooth playback](smoothness.md) - How desktop video reaches the screen without stalls, how seeking and playback speed behave, and how smoothness is measured.
 
 # Policies
 

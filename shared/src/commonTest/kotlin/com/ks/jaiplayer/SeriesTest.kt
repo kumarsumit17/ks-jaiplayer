@@ -7,6 +7,8 @@ import com.ks.jaiplayer.player.Playlist
 import com.ks.jaiplayer.player.formatSpeed
 import com.ks.jaiplayer.player.naturalNameOrder
 import com.ks.jaiplayer.player.nextSpeed
+import com.ks.jaiplayer.player.stepSpeed
+import com.ks.jaiplayer.player.clampSpeed
 import com.ks.jaiplayer.plugin.JaiPlugin
 import com.ks.jaiplayer.plugin.PluginContext
 import com.ks.jaiplayer.settings.MemorySettingsStore
@@ -54,8 +56,15 @@ class PlaylistTest {
     @Test fun speeds() {
         assertEquals(1.25f, nextSpeed(1f, faster = true))
         assertEquals(0.75f, nextSpeed(1f, faster = false))
-        assertEquals(2f, nextSpeed(2f, faster = true))
-        assertEquals(0.5f, nextSpeed(0.5f, faster = false))
+        assertEquals(2.5f, nextSpeed(2f, faster = true))
+        assertEquals(4f, nextSpeed(4f, faster = true))
+        assertEquals(0.25f, nextSpeed(0.25f, faster = false))
+        assertEquals(1.05f, stepSpeed(1f, faster = true))
+        assertEquals(1.3f, stepSpeed(1.35f, faster = false))
+        assertEquals(4f, stepSpeed(4f, faster = true))
+        assertEquals(0.25f, stepSpeed(0.25f, faster = false))
+        assertEquals(4f, clampSpeed(9f))
+        assertEquals("1.35×", formatSpeed(stepSpeed(1.3f, faster = true)))
         assertEquals(1.25f, nextSpeed(1.1f, faster = true))
         assertEquals("1×", formatSpeed(1f))
         assertEquals("1.25×", formatSpeed(1.25f))

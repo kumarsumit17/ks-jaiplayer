@@ -42,6 +42,8 @@
   "player.episodeOf": "{total} में से {number}",
   "player.speed": "प्लेबैक स्पीड",
   "player.speedNormal": "नॉर्मल",
+  "player.speedSlower": "धीमा",
+  "player.speedFaster": "तेज़",
   "home.noMedia": "{name} में कोई वीडियो या ऑडियो फ़ाइल नहीं है।",
   "browse.filesTitle": "कोई वीडियो या गाना चुनें",
   "browse.foldersTitle": "कोई सीरीज़ या फ़ोल्डर चुनें",

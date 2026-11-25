@@ -11,6 +11,7 @@ import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.Tracks
 import androidx.media3.exoplayer.ExoPlayer
 import com.ks.jaiplayer.player.MediaRef
+import com.ks.jaiplayer.player.clampSpeed
 import com.ks.jaiplayer.player.PlaybackState
 import com.ks.jaiplayer.player.PlaybackStatus
 import com.ks.jaiplayer.player.PlayerEngine
@@ -143,8 +144,9 @@ class ExoPlayerEngine(context: Context) : PlayerEngine {
     }
 
     override fun setSpeed(speed: Float) {
-        player.setPlaybackSpeed(speed.coerceIn(0.25f, 4f))
-        _state.update { it.copy(speed = speed) }
+        val clamped = clampSpeed(speed)
+        player.setPlaybackSpeed(clamped)
+        _state.update { it.copy(speed = clamped) }
     }
 
     override fun selectAudioTrack(id: Int) = select(C.TRACK_TYPE_AUDIO, id)

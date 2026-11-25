@@ -43,7 +43,7 @@ JAIPLAYER_TEST_MEDIA=<video with 2 audio tracks> ./gradlew :shared:desktopTest  
 ./gradlew :desktop:mac:packageReleaseDmg                     # .dmg (on a Mac)
 ./gradlew :desktop:windows:packageReleaseMsi                 # .msi (on Windows / CI)
 ```
-Native installers only build on their own OS. Releases use ks-utility's shared release workflow (`.github/workflows/release.yml` calls it). The build needs Node 23.6+ for the language files. `JAIPLAYER_VLC_LOG=<file>` writes libVLC's log for diagnosis (needs an installed VLC: the logging plugin is GPL, so it is not bundled). `-PnoBundledVlc` builds without the bundled libVLC; `JAIPLAYER_TEST_VLC=<folder with lib/ and plugins/>` runs the real libVLC test against another copy, such as `desktop/mac/build/vlc-resources/common/vlc`.
+Native installers only build on their own OS. Releases use ks-utility's shared release workflow (`.github/workflows/release.yml` calls it). The build needs Node 23.6+ for the language files. `JAIPLAYER_VLC_LOG=<file>` writes libVLC's log for diagnosis (needs an installed VLC: the logging plugin is GPL, so it is not bundled). `-PnoBundledVlc` builds without the bundled libVLC; `JAIPLAYER_TEST_VLC=<folder with lib/ and plugins/>` runs the real libVLC test against another copy, such as `desktop/mac/build/vlc-resources/common/vlc`. `JAIPLAYER_PERF=1` prints frame rates once a second (see `specs/smoothness.md`).
 
 ## Platform folders
 - Every KS-Suite app repo has the same top-level platform folders: `tv/google-tv/`, `desktop/mac/`, `desktop/windows/`, `mobile/android/` and `mobile/ios/`. All five exist in every app repo, whether or not the app supports that platform yet.

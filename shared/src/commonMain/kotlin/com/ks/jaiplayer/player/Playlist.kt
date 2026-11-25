@@ -55,8 +55,24 @@ private fun chunks(s: String): List<String> {
     return out.ifEmpty { listOf("") }
 }
 
+/** The slowest and fastest speeds; both engines keep sound and picture going across this range. */
+const val MIN_SPEED = 0.25f
+const val MAX_SPEED = 4f
+
+/** The fine step of the speed control, as in "1.35×". */
+const val SPEED_STEP = 0.05f
+
 /** The speeds offered, slowest first. */
-val playbackSpeeds = listOf(0.5f, 0.75f, 1f, 1.25f, 1.5f, 1.75f, 2f)
+val playbackSpeeds = listOf(0.25f, 0.5f, 0.75f, 1f, 1.25f, 1.5f, 1.75f, 2f, 2.5f, 3f, 4f)
+
+/** [current] moved by one fine step, rounded to the step and kept within the range. */
+fun stepSpeed(current: Float, faster: Boolean): Float {
+    val steps = kotlin.math.round(current / SPEED_STEP) + if (faster) 1 else -1
+    return clampSpeed(steps * SPEED_STEP)
+}
+
+/** [speed] kept within [MIN_SPEED]..[MAX_SPEED], rounded to hundredths. */
+fun clampSpeed(speed: Float): Float = kotlin.math.round(speed.coerceIn(MIN_SPEED, MAX_SPEED) * 100) / 100
 
 /** The next speed up or down the list from [current], staying at the ends. */
 fun nextSpeed(current: Float, faster: Boolean): Float {
