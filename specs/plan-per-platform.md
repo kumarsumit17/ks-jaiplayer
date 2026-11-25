@@ -137,4 +137,8 @@ Each step is one or more commits on `dev`, tested on its platform before the nex
 | 6 | Windows: look, file associations, single instance, jump list, stay awake, `jdk.accessibility`, hardware decoding check, (SMTC) | `desktop/windows`, `shared/src/desktopMain` | CI build of the msi; hand check by the owner on Windows (never blocks a release) |
 | 7 | Accessibility pass on all four, interface text in English and Hindi | `shared/`, each platform | TalkBack (phone, TV), VoiceOver (Mac), Narrator by the owner |
 
+**Built so far (2026-11-25):**
+- Step 1: tags `android-vX.Y.Z`, `google-tv-vX.Y.Z`, `mac-vX.Y.Z` and `windows-vX.Y.Z` release one platform, while a plain `vX.Y.Z` still releases all of them (ks-utility v0.10.0, `platform` input for rehearsals). Each platform's version is the higher of its own latest tag and the latest plain tag (`appVersionName.<platform>`). The updater reads the release list, so a platform release does not have to be "latest".
+- Step 2, partly: audio focus, pause when headphones are unplugged, decoder fallback, the media session (headset, Bluetooth, remote and Assistant controls, now playing), picture-in-picture auto-enter on Android 12+, and R8 on the release and Play builds (APK about 9 MB → 1.8 MB). Tested on the phone emulator with the R8 build: playback, media-key pause/play, Home into picture-in-picture, no errors. Still to do in step 2: the TV emulator runs, picture-in-picture actions, and the baseline profile.
+
 Windows cannot be run from this Mac, so step 6 is checked by its CI build, its unit tests and the owner's hand check.

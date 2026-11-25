@@ -9,12 +9,18 @@ name: Release
 
 on:
   push:
-    tags: ["v*.*.*"]
+    # vX.Y.Z releases every platform; android-, google-tv-, mac-, windows-vX.Y.Z only that one.
+    tags: ["v*.*.*", "*-v*.*.*"]
   workflow_dispatch:
     inputs:
       version:
         description: "Version to rehearse, X.Y.Z. Builds everything, releases nothing."
         required: true
+        type: string
+      platform:
+        description: "Platform to rehearse: all, android, google-tv, mac or windows."
+        required: false
+        default: "all"
         type: string
 
 permissions:
@@ -26,13 +32,14 @@ concurrency:
 
 jobs:
   release:
-    uses: kumarsumit17/ks-utility/.github/workflows/kotlin-app-release.yml@v0.7.0
+    uses: kumarsumit17/ks-utility/.github/workflows/kotlin-app-release.yml@v0.10.0
     permissions:
       contents: write
       id-token: write
       attestations: write
     with:
       version: ${{ inputs.version }}
+      platform: ${{ inputs.platform || 'all' }}
       app-name: ks-jaiplayer
       display-name: KS JaiPlayer
       android-module: ":mobile:android"

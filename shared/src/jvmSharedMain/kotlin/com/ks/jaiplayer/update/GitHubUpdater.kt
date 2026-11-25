@@ -100,7 +100,7 @@ class GitHubUpdater(
             return
         }
         settings.putString(LAST_CHECK_KEY, System.currentTimeMillis().toString())
-        when (val outcome = AppUpdate.evaluate(body, repo, currentVersion, platform)) {
+        when (val outcome = AppUpdate.evaluateReleases(body, repo, currentVersion, platform)) {
             null -> if (!silent) _status.value = UpdateStatus.Failed(UpdateFailure.Unreadable)
             is UpdateOutcome.UpToDate -> if (!silent) _status.value = UpdateStatus.UpToDate(outcome.version)
             is UpdateOutcome.NoInstaller -> if (!silent) _status.value = UpdateStatus.NoInstaller(outcome.version)
@@ -112,7 +112,7 @@ class GitHubUpdater(
     }
 
     private fun fetchLatest(): String {
-        val connection = URI(repo.latestReleaseApiUrl).toURL().openConnection() as HttpURLConnection
+        val connection = URI(repo.releasesApiUrl).toURL().openConnection() as HttpURLConnection
         try {
             connection.connectTimeout = 15_000
             connection.readTimeout = 15_000

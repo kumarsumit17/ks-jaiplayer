@@ -1,5 +1,6 @@
 # 2026-11-25
 
+* **Update**: [Per-platform plan](plan-per-platform.md): step 1 built (one tag per platform, ks-utility v0.10.0) and step 2 partly built (Android audio focus, media session, decoder fallback, picture-in-picture auto-enter, R8).
 * **Creation**: [Desktop engine benchmark](engine-benchmark.md) added: libVLC uses about half the CPU of libmpv in the app's frame path on macOS; the desktop builds stay on libVLC.
 * **Update**: [Bundled libVLC](plan-bundled-vlc-and-plugins.md): libVLC's plugin cache is written into the finished app, so the first start after install takes about 1 s instead of over a minute.
 * **Creation**: [Per-platform optimization plan](plan-per-platform.md) added: an audit of each build and a per-platform plan (look and input, startup, hardware decoding, packaging, media sessions and OS integrations, accessibility) with an own version per platform; approved by the owner with one tag per platform (`mac-v`, `windows-v`, `android-v`, `google-tv-v`).
