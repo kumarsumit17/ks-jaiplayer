@@ -42,6 +42,9 @@ class MainActivity : ComponentActivity() {
     private lateinit var app: JaiPlayerState
     private lateinit var engine: ExoPlayerEngine
     private lateinit var session: PlayerSession
+    private lateinit var pipActions: PipActions
+    /** Whether picture-in-picture may start by itself now (Android 12+); kept for refreshes. */
+    private var pipAutoEnter = false
     /** Null in the Google Play build, which Play updates. */
     private var updater: GitHubUpdater? = null
     private var onMediaPicked: ((MediaRef) -> Unit)? = null
@@ -90,6 +93,7 @@ class MainActivity : ComponentActivity() {
             onNext = app::next,
             onPrevious = app::previous,
         )
+        pipActions = PipActions(this) { app.controller.perform(it) }.also { it.register() }
         // Back closes the browser or the video before it leaves the app. On TV the player's
         // controls take the remote's keys while they show, so Compose never sees Back then.
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
@@ -118,7 +122,12 @@ class MainActivity : ComponentActivity() {
                 combine(snapshotFlow { app.screen == Screen.Player }, engine.state.map { it.isPlaying }) { inPlayer, playing -> inPlayer && playing }
                     .combine(engine.state.map { engine.videoSize() }) { auto, _ -> auto }
                     .distinctUntilChanged()
-                    .collect { auto -> setPictureInPictureParams(pipParams(auto)) }
+                    .collect { auto -> pipAutoEnter = auto; setPictureInPictureParams(pipParams(auto)) }
+            }
+            // Android 8 to 12: the play/pause button in the window follows the playback state.
+            if (pipSupported && Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) LaunchedEffect(Unit) {
+                engine.state.map { it.isPlaying }.distinctUntilChanged()
+                    .collect { runCatching { setPictureInPictureParams(pipParams(pipAutoEnter)) } }
             }
             JaiPlayerApp(app)
         }
@@ -157,6 +166,7 @@ class MainActivity : ComponentActivity() {
         val (w, h) = engine.videoSize()
         val ratio = if (w > 0 && h > 0) Rational(w, h) else Rational(16, 9)
         val builder = PictureInPictureParams.Builder().setAspectRatio(clamp(ratio))
+            .setActions(pipActions.actions(engine.state.value.isPlaying))
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             // Video is not resized seamlessly (that is for other content); the system cross-fades it.
             builder.setAutoEnterEnabled(autoEnter).setSeamlessResizeEnabled(false)
@@ -197,6 +207,7 @@ class MainActivity : ComponentActivity() {
         super.onDestroy()
         // A new activity makes its own session, and two sessions may not share an id.
         session.release()
+        pipActions.unregister()
         if (isFinishing) engine.release()
     }
 
