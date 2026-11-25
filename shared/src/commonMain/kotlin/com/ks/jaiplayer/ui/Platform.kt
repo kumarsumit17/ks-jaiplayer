@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.ks.jaiplayer.player.MediaRef
 import com.ks.jaiplayer.player.PlayerEngine
+import org.jetbrains.compose.resources.StringResource
 
 /** Which kind of device the interface is laid out for. */
 enum class FormFactor { Desktop, Phone, Tv }
@@ -32,7 +33,18 @@ interface PlatformHost {
 
     /** The device's media library, browsed in the app instead of a picker (the Google TV app); null elsewhere. */
     val library: MediaLibrary? get() = null
+
+    /** Switches that only make sense on this platform, shown under "This device" in Settings. */
+    val deviceSettings: List<DeviceSetting> get() = emptyList()
 }
+
+/** An on/off setting of one platform (frame-rate matching on TV, background audio on the phone). */
+class DeviceSetting(
+    val label: StringResource,
+    val description: StringResource,
+    val isOn: () -> Boolean,
+    val set: (Boolean) -> Unit,
+)
 
 /** Draws the engine's picture. Each platform draws its own engine's frames. */
 @Composable

@@ -26,6 +26,13 @@ import com.ks.jaiplayer.resources.common_language_hindi
 import com.ks.jaiplayer.resources.common_language_system
 import com.ks.jaiplayer.resources.common_settings
 import com.ks.jaiplayer.settings.LanguageChoice
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.material3.Switch
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import com.ks.jaiplayer.resources.settings_this_device
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -56,6 +63,15 @@ fun SettingsDialog(app: JaiPlayerState) {
                         Text(stringResource(label), Modifier.padding(start = 12.dp))
                     }
                 }
+                app.host.deviceSettings.takeIf { it.isNotEmpty() }?.let { settings ->
+                    HorizontalDivider(Modifier.padding(vertical = 16.dp))
+                    Text(
+                        stringResource(Res.string.settings_this_device),
+                        style = MaterialTheme.typography.titleSmall,
+                        modifier = Modifier.padding(bottom = 8.dp),
+                    )
+                    settings.forEach { DeviceSettingRow(it) }
+                }
                 app.updates?.let {
                     HorizontalDivider(Modifier.padding(vertical = 16.dp))
                     UpdateSection(it)
@@ -67,3 +83,25 @@ fun SettingsDialog(app: JaiPlayerState) {
         },
     )
 }
+
+@Composable
+private fun DeviceSettingRow(setting: DeviceSetting) {
+    var on by remember(setting) { mutableStateOf(setting.isOn()) }
+    Row(
+        Modifier.fillMaxWidth()
+            .toggleable(on, role = Role.Switch) { on = it; setting.set(it) }
+            .padding(vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f).padding(end = 12.dp)) {
+            Text(stringResource(setting.label))
+            Text(
+                stringResource(setting.description),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Switch(checked = on, onCheckedChange = null)
+    }
+}
+

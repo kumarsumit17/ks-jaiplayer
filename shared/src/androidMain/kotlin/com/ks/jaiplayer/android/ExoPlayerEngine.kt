@@ -56,6 +56,15 @@ class ExoPlayerEngine(context: Context) : PlayerEngine {
         .setSeekForwardIncrementMs(SEEK_STEP_MS)
         .build()
 
+    /**
+     * Google TV: switch the display to the video's frame rate when that is seamless (Media3's
+     * default and Google TV's recommendation); off keeps the TV's own rate.
+     */
+    fun setFrameRateMatching(on: Boolean) {
+        player.videoChangeFrameRateStrategy =
+            if (on) C.VIDEO_CHANGE_FRAME_RATE_STRATEGY_ONLY_IF_SEAMLESS else C.VIDEO_CHANGE_FRAME_RATE_STRATEGY_OFF
+    }
+
     private val _state = MutableStateFlow(PlaybackState())
     override val state: StateFlow<PlaybackState> = _state
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)

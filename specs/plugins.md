@@ -28,6 +28,7 @@ Open a file or a series folder, play and pause, seek, volume and mute, full scre
 | Plugin | id | Adds |
 |---|---|---|
 | Recent files | `recent-files` | The last 20 files on the home screen (missing ones greyed, remove one or all) and File › Open recent |
+| Resume | `resume` | Opens a file where it was left (files of 3 minutes or more, started, not in the last 5 %); keeps the last 50 positions; feeds Google TV's Continue watching row |
 | Tracks | `tracks` | Subtitle menu (off, embedded tracks, add a subtitle file), audio track menu, keys S and A, menu entries |
 
 ## Later

@@ -49,5 +49,10 @@
   "browse.foldersTitle": "कोई सीरीज़ या फ़ोल्डर चुनें",
   "browse.empty": "इस TV या इसकी USB ड्राइव में कोई वीडियो या संगीत नहीं मिला।",
   "browse.noAccess": "इस TV के वीडियो और संगीत पढ़ने के लिए KS JaiPlayer को आपकी इजाज़त चाहिए।",
-  "browse.allow": "इजाज़त दें"
+  "browse.allow": "इजाज़त दें",
+  "settings.thisDevice": "यह डिवाइस",
+  "settings.matchFrameRate": "वीडियो के फ़्रेम रेट पर चलाएँ",
+  "settings.matchFrameRateHint": "जब टीवी स्क्रीन काली किए बिना बदल सके, तब वह वीडियो के फ़्रेम रेट पर चलता है।",
+  "settings.backgroundAudio": "बैकग्राउंड में ऑडियो चलता रहे",
+  "settings.backgroundAudioHint": "ऐप छोड़ने या स्क्रीन बंद करने पर भी ऑडियो फ़ाइलें चलती रहती हैं।"
 }

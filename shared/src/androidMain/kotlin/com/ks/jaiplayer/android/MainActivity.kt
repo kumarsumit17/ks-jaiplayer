@@ -25,6 +25,10 @@ import androidx.core.view.WindowInsetsControllerCompat
 import com.ks.jaiplayer.player.MediaRef
 import com.ks.jaiplayer.plugins.builtInPlugins
 import com.ks.jaiplayer.settings.SettingsStore
+import com.ks.jaiplayer.ui.DeviceSetting
+import com.ks.jaiplayer.resources.Res
+import com.ks.jaiplayer.resources.settings_match_frame_rate
+import com.ks.jaiplayer.resources.settings_match_frame_rate_hint
 import com.ks.jaiplayer.ui.FormFactor
 import com.ks.jaiplayer.ui.JaiPlayerApp
 import com.ks.jaiplayer.ui.JaiPlayerState
@@ -76,6 +80,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         val form = formFactorOf(this)
         engine = ExoPlayerEngine(this)
+        if (form == FormFactor.Tv) engine.setFrameRateMatching(deviceFlag(MATCH_FRAME_RATE, default = true))
         val settings = PrefsStore(getSharedPreferences("settings", MODE_PRIVATE))
         updater = if (isPlayBuild(this)) null else androidUpdater(this, settings, updatePlatformOf(form))
         app = JaiPlayerState(
@@ -83,7 +88,8 @@ class MainActivity : ComponentActivity() {
             host = host(form),
             settings = settings,
             systemLanguages = LocaleList.getDefault().let { list -> (0 until list.size()).map { list[it].toLanguageTag() } },
-            plugins = builtInPlugins(),
+            // Google TV: unfinished files appear on the home screen's Continue watching row.
+            plugins = builtInPlugins(onResumeChanged = if (form == FormFactor.Tv) WatchNext(this)::publish else { _ -> }),
             updates = updater,
         )
         session = PlayerSession(
@@ -214,6 +220,16 @@ class MainActivity : ComponentActivity() {
     private fun host(form: FormFactor) = object : PlatformHost {
         override val formFactor = form
 
+        override val deviceSettings: List<DeviceSetting> = buildList {
+            if (form == FormFactor.Tv) add(
+                DeviceSetting(
+                    Res.string.settings_match_frame_rate, Res.string.settings_match_frame_rate_hint,
+                    isOn = { deviceFlag(MATCH_FRAME_RATE, default = true) },
+                    set = { setDeviceFlag(MATCH_FRAME_RATE, it); engine.setFrameRateMatching(it) },
+                ),
+            )
+        }
+
         // Google TV often has no system file picker, so the TV app browses the media library.
         override val library: MediaLibrary? = if (form == FormFactor.Tv) {
             AndroidMediaLibrary(this@MainActivity) { permissions, onResult ->
@@ -239,6 +255,16 @@ class MainActivity : ComponentActivity() {
 
         override fun exists(media: MediaRef) = Documents.exists(this@MainActivity, media)
         override fun location(media: MediaRef) = Documents.location(this@MainActivity, media)
+    }
+
+    private fun deviceFlag(key: String, default: Boolean): Boolean =
+        getSharedPreferences("settings", MODE_PRIVATE).getString("device.$key", null)?.toBooleanStrictOrNull() ?: default
+
+    private fun setDeviceFlag(key: String, on: Boolean) =
+        getSharedPreferences("settings", MODE_PRIVATE).edit().putString("device.$key", on.toString()).apply()
+
+    private companion object {
+        const val MATCH_FRAME_RATE = "matchFrameRate"
     }
 }
 

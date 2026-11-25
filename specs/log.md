@@ -1,5 +1,6 @@
 # 2026-11-25
 
+* **Update**: [Per-platform optimization plan](plan-per-platform.md): step 3 (Google TV) built: Continue watching row, hold to seek, up/down show the controls, frame-rate matching switch. [Plugins](plugins.md): new built-in Resume plugin.
 * **Update**: [Per-platform optimization plan](plan-per-platform.md): owner's decisions. Background audio on the phone and the Continue watching row on Google TV: yes (`androidx.tvprovider` added). Windows SMTC: after the other Windows items. [Bundled libVLC and third-party plugins](plan-bundled-vlc-and-plugins.md): section 2 (desktop plugin jars) approved.
 * **Update**: [Per-platform optimization plan](plan-per-platform.md): back to one version for every platform (new suite rule). One plain `vX.Y.Z` tag releases all four builds; the per-platform tags and the bridge release are dropped. Each build is still tuned to its platform.
 * **Update**: [Per-platform optimization plan](plan-per-platform.md): picture-in-picture buttons (media session on Android 13+, the app's own on Android 8 to 12); cold start measured with the library baseline profiles (about 180 ms on the emulator), so no app-specific profile generator for now.

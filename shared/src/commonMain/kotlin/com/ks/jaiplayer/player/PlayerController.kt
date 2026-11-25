@@ -4,16 +4,21 @@ package com.ks.jaiplayer.player
  * Turns user actions into engine calls. Holds no state of its own: every decision is made from
  * the engine's current [PlaybackState], so the controller is the same on every platform.
  */
-class PlayerController(private val engine: PlayerEngine) {
+class PlayerController(
+    private val engine: PlayerEngine,
+    /** Milliseconds from any fixed point; only differences are used (holding a seek key). */
+    now: () -> Long = monotonicMillis(),
+) {
 
     private val state get() = engine.state.value
+    private val hold = SeekHold(now)
 
     /** Performs [action]; returns false for actions the interface handles itself. */
     fun perform(action: PlayerAction): Boolean {
         when (action) {
             PlayerAction.TogglePlay -> togglePlay()
-            PlayerAction.SeekBack -> seekBy(-SEEK_STEP_MS)
-            PlayerAction.SeekForward -> seekBy(SEEK_STEP_MS)
+            PlayerAction.SeekBack -> seekBy(-hold.step(forward = false))
+            PlayerAction.SeekForward -> seekBy(hold.step(forward = true))
             PlayerAction.SeekBackLong -> seekBy(-SEEK_LONG_STEP_MS)
             PlayerAction.SeekForwardLong -> seekBy(SEEK_LONG_STEP_MS)
             PlayerAction.VolumeUp -> changeVolume(VOLUME_STEP)
@@ -65,3 +70,37 @@ class PlayerController(private val engine: PlayerEngine) {
         const val MAX_VOLUME = 100
     }
 }
+
+/**
+ * Holding a seek key (an arrow on the keyboard, left or right on the remote) moves further the
+ * longer it is held: 10 seconds per repeat at first, then 30 seconds, then a minute. A pause
+ * longer than [GAP_MS] or a change of direction starts again at 10 seconds.
+ */
+class SeekHold(private val now: () -> Long) {
+    private var lastMs = Long.MIN_VALUE
+    private var forward = true
+    private var repeats = 0
+
+    fun step(forward: Boolean): Long {
+        val t = now()
+        repeats = if (forward == this.forward && lastMs != Long.MIN_VALUE && t - lastMs <= GAP_MS) repeats + 1 else 0
+        this.forward = forward
+        lastMs = t
+        return when {
+            repeats < 6 -> PlayerController.SEEK_STEP_MS
+            repeats < 16 -> 30_000L
+            else -> 60_000L
+        }
+    }
+
+    companion object {
+        /** Key repeats arrive every 30–100 ms; a gap longer than this is a new press. */
+        const val GAP_MS = 400L
+    }
+}
+
+private fun monotonicMillis(): () -> Long {
+    val start = kotlin.time.TimeSource.Monotonic.markNow()
+    return { start.elapsedNow().inWholeMilliseconds }
+}
+

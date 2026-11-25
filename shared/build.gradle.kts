@@ -61,6 +61,7 @@ kotlin {
             implementation(libs.media3.exoplayer)
             implementation(libs.media3.ui.compose)
             implementation(libs.media3.session)
+            implementation(libs.androidx.tvprovider)
             implementation(libs.kotlinx.coroutines.android)
         }
     }

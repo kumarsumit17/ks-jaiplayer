@@ -46,5 +46,11 @@
             android:grantUriPermissions="true">
             <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/update_paths" />
         </provider>
+        <!-- Google TV's Continue watching row reads the thumbnail of each unfinished file here
+             (read only, only the app's own thumbnails; see WatchNext.kt). -->
+        <provider
+            android:name="com.ks.jaiplayer.android.ThumbnailProvider"
+            android:authorities="${applicationId}.thumbnails"
+            android:exported="true" />
     </application>
 </manifest>

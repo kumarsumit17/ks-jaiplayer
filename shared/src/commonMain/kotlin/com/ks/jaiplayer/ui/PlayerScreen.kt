@@ -103,6 +103,7 @@ import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
 private const val HIDE_AFTER_MS = 3_000L
+private val SEEK_ACTIONS = setOf(PlayerAction.SeekBack, PlayerAction.SeekForward, PlayerAction.SeekBackLong, PlayerAction.SeekForwardLong)
 
 @Composable
 fun PlayerScreen(app: JaiPlayerState) {
@@ -126,9 +127,19 @@ fun PlayerScreen(app: JaiPlayerState) {
 
     val rootFocus = remember { FocusRequester() }
     val playFocus = remember { FocusRequester() }
+    val seekFocus = remember { FocusRequester() }
+    // TV: controls brought up by a seek key open on the seek bar, so holding the key keeps seeking.
+    var focusSeekBar by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { runCatching { rootFocus.requestFocus() } }
     LaunchedEffect(controlsShown) {
-        if (form == FormFactor.Tv) runCatching { if (controlsShown) playFocus.requestFocus() else rootFocus.requestFocus() }
+        if (form == FormFactor.Tv) runCatching {
+            when {
+                !controlsShown -> rootFocus.requestFocus()
+                focusSeekBar -> seekFocus.requestFocus()
+                else -> playFocus.requestFocus()
+            }
+            focusSeekBar = false
+        }
     }
 
     fun handle(event: KeyEvent, tvControlsShown: Boolean): Boolean {
@@ -140,7 +151,10 @@ fun PlayerScreen(app: JaiPlayerState) {
             poke()
             return true
         }
+        if (form == FormFactor.Tv && !tvControlsShown && !controlsShown && action in SEEK_ACTIONS) focusSeekBar = true
         poke()
+        // TV: up and down bring up the controls; the remote has its own volume keys for the TV.
+        if (form == FormFactor.Tv && action in setOf(PlayerAction.VolumeUp, PlayerAction.VolumeDown)) return true
         when (action) {
             PlayerAction.NextItem -> app.next()
             PlayerAction.PreviousItem -> app.previous()
@@ -192,7 +206,7 @@ fun PlayerScreen(app: JaiPlayerState) {
 
         AnimatedVisibility(controlsShown, enter = fadeIn(), exit = fadeOut(), modifier = Modifier.fillMaxSize()) {
             CompositionLocalProvider(LocalMenuOpen provides { open: Boolean -> menuOpen = open; poke() }) {
-                Controls(app, state, playFocus)
+                Controls(app, state, playFocus, seekFocus)
             }
         }
     }
@@ -222,7 +236,7 @@ private fun ErrorBanner(error: PlayerError, state: PlaybackState, modifier: Modi
 }
 
 @Composable
-private fun Controls(app: JaiPlayerState, state: PlaybackState, playFocus: FocusRequester) {
+private fun Controls(app: JaiPlayerState, state: PlaybackState, playFocus: FocusRequester, seekFocus: FocusRequester) {
     val m = LocalMetrics.current
     val form = LocalFormFactor.current
     val controller = app.controller
@@ -265,7 +279,7 @@ private fun Controls(app: JaiPlayerState, state: PlaybackState, playFocus: Focus
                 .background(Brush.verticalGradient(listOf(Color.Transparent, scrim)))
                 .padding(m.safe),
         ) {
-            SeekBar(state, controller)
+            SeekBar(state, controller, seekFocus)
             val list = app.playlist
             val series = list != null && list.size > 1
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -372,7 +386,7 @@ private fun EpisodeMenu(app: JaiPlayerState, list: Playlist) {
 }
 
 @Composable
-private fun SeekBar(state: PlaybackState, controller: PlayerController) {
+private fun SeekBar(state: PlaybackState, controller: PlayerController, focus: FocusRequester) {
     val form = LocalFormFactor.current
     val focusManager = LocalFocusManager.current
     // While the thumb is dragged the bar shows the drag position and the picture follows it
@@ -395,7 +409,7 @@ private fun SeekBar(state: PlaybackState, controller: PlayerController) {
             },
             enabled = state.canSeek,
             colors = SliderDefaults.colors(inactiveTrackColor = Color.White.copy(alpha = 0.25f)),
-            modifier = Modifier.weight(1f).padding(horizontal = 12.dp).desktopNoFocus().tvFocusRing(RoundedCornerShape(12.dp))
+            modifier = Modifier.weight(1f).padding(horizontal = 12.dp).focusRequester(focus).desktopNoFocus().tvFocusRing(RoundedCornerShape(12.dp))
                 .onPreviewKeyEvent { e -> if (form == FormFactor.Tv) tvSeekBarKey(e, controller, focusManager) else false },
         )
         TimeText(formatPlaybackTime(state.durationMs))
@@ -431,8 +445,9 @@ private fun VolumeSlider(state: PlaybackState, controller: PlayerController) {
 private fun tvSeekBarKey(e: KeyEvent, controller: PlayerController, focusManager: FocusManager): Boolean {
     if (e.type != KeyEventType.KeyDown) return e.key in setOf(Key.DirectionLeft, Key.DirectionRight, Key.DirectionUp, Key.DirectionDown)
     when (e.key) {
-        Key.DirectionLeft -> controller.seekBy(-PlayerController.SEEK_STEP_MS)
-        Key.DirectionRight -> controller.seekBy(PlayerController.SEEK_STEP_MS)
+        // Holding left or right seeks further the longer it is held, as the keyboard's arrows do.
+        Key.DirectionLeft -> controller.perform(PlayerAction.SeekBack)
+        Key.DirectionRight -> controller.perform(PlayerAction.SeekForward)
         Key.DirectionUp -> focusManager.moveFocus(FocusDirection.Up)
         Key.DirectionDown -> focusManager.moveFocus(FocusDirection.Down)
         else -> return false
