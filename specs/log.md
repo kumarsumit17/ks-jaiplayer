@@ -1,5 +1,6 @@
 # 2026-11-25
 
+* **Creation**: [Per-platform optimization plan](plan-per-platform.md) added: an audit of each build and a per-platform plan (look and input, startup, hardware decoding, packaging, media sessions and OS integrations, accessibility) with an own version per platform; approved by the owner with one tag per platform (`mac-v`, `windows-v`, `android-v`, `google-tv-v`).
 * **Update**: `ks-utility` moved from `v0.7.0` to `v0.9.0` (more languages, the translation tools; [ks-utility translation tools](https://github.com/kumarsumit17/ks-utility/blob/main/specs/translating.md)).
 * **Creation**: [Smooth playback](smoothness.md) added: desktop frames as YUV planes converted on the GPU through three rotating buffers (no copies, no shared waiting), coalesced seeks with live scrubbing, playback speed 0.25×–4× with a fine 0.05× control, the `JAIPLAYER_PERF` measurements and a speed test.
 * **Update**: [Bundled libVLC and third-party plugins](plan-bundled-vlc-and-plugins.md): section 1 built (owner chose option a). The desktop installers carry libVLC 3.0.24 with only its LGPL plugins, selected from each plugin's declared licence plus a list of plugins that link GPL libraries; `COPYING.LIB` and `PLUGINS.txt` ship with it. Section 2 still awaits the owner.
