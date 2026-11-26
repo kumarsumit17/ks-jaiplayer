@@ -1,6 +1,6 @@
 # KS JaiPlayer
 
-> Part of the [KS-Suite](https://github.com/kumasumit/KS-Suite).
+> Part of the [KS-Suite](https://github.com/kumasumit/ks-suite).
 
 A multi-platform media player with a shared Kotlin core and native playback engines on each target.
 
@@ -24,7 +24,7 @@ The desktop app plays through libVLC 3, which the build downloads and bundles wi
 ## Release
 
 Releases are cut by pushing a semantic version tag (`git tag v1.2.3 && git push --tags`). The workflow is shared by every KS-Suite Kotlin app and lives in [ks-utility](https://github.com/kumasumit/ks-utility/blob/main/specs/release-workflow.md). Each release has the APK (phone and Google TV), a macOS dmg (Apple silicon) and a Windows msi.
-See the suite-level [CI/CD guide](https://github.com/kumasumit/KS-Suite#-cicd-semantic-versioning--automated-signing).
+See the suite-level [CI/CD guide](https://github.com/kumasumit/ks-suite#-cicd-semantic-versioning--automated-signing).
 
 ## License
 

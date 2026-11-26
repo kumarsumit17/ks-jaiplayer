@@ -40,4 +40,4 @@ The app is a small core plus `JaiPlugin`s ([Plugins](plugins.md)); today all plu
 - **For plugin authors:** a small sample plugin and a page on writing one.
 
 ## To do after the choice
-Build, test on macOS (both chips on CI) and Windows (CI), and release, following the [release cycle](https://github.com/kumasumit/KS-Suite/blob/main/specs/release-cycle.md). Hand checks don't block the release.
+Build, test on macOS (both chips on CI) and Windows (CI), and release, following the [release cycle](https://github.com/kumasumit/ks-suite/blob/main/specs/release-cycle.md). Hand checks don't block the release.

@@ -1,5 +1,6 @@
 # 2026-11-26
 
+* **Update**: links to the KS-Suite repository and landing page now use `kumasumit/ks-suite` and `kumasumit.github.io/ks-suite` (renamed by the owner).
 * **Update**: ks-utility moved to v0.14.0 (newest tag, before the release), in the submodule pin and the release workflow.
 * **Update**: [Per-platform optimization plan](plan-per-platform.md): fixed a crash on Android 8 to 12 (the update checker used `InputStream.readNBytes`); TV side panels and tunnelled playback; picture-in-picture source hint, its own buttons tested on Android 12, app controls hidden and orientation released in the window; desktop Tab focus; Reduce Motion.
 * **Update**: [Per-platform optimization plan](plan-per-platform.md): Windows folder picker (`IFileOpenDialog`) and system look for dialogs; taskbar thumbnail buttons left out (too risky without a Windows machine; the media overlay covers them).
