@@ -26,6 +26,9 @@ class PlayerSession(
     private val player = SeriesPlayer(engine.player)
     private val session = MediaSession.Builder(context, player).setId("jaiplayer").build()
 
+    /** The Media3 session, also hosted by [PlaybackService] while audio plays in the background. */
+    val mediaSession: MediaSession get() = session
+
     /** Call when the playlist changes, so the session offers next/previous correctly. */
     fun playlistChanged() = player.refresh()
 

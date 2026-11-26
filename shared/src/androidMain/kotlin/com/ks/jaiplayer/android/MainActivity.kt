@@ -29,6 +29,8 @@ import com.ks.jaiplayer.ui.DeviceSetting
 import com.ks.jaiplayer.resources.Res
 import com.ks.jaiplayer.resources.settings_match_frame_rate
 import com.ks.jaiplayer.resources.settings_match_frame_rate_hint
+import com.ks.jaiplayer.resources.settings_background_audio
+import com.ks.jaiplayer.resources.settings_background_audio_hint
 import com.ks.jaiplayer.ui.FormFactor
 import com.ks.jaiplayer.ui.JaiPlayerApp
 import com.ks.jaiplayer.ui.JaiPlayerState
@@ -135,6 +137,13 @@ class MainActivity : ComponentActivity() {
                 engine.state.map { it.isPlaying }.distinctUntilChanged()
                     .collect { runCatching { setPictureInPictureParams(pipParams(pipAutoEnter)) } }
             }
+            // Phone: an audio file that plays is hosted by the playback service, so it goes on in
+            // the background; anything else is not.
+            if (form == FormFactor.Phone) LaunchedEffect(Unit) {
+                engine.state.map { it.isPlaying && engine.isAudioOnly() }.distinctUntilChanged().collect { audio ->
+                    if (audio && backgroundAudioOn()) PlaybackService.attach(this@MainActivity, session.mediaSession)
+                }
+            }
             JaiPlayerApp(app)
         }
     }
@@ -206,12 +215,15 @@ class MainActivity : ComponentActivity() {
 
     override fun onStop() {
         super.onStop()
-        if (!isInPictureInPictureMode) engine.pause()
+        // Leaving the screen pauses, except picture-in-picture and background audio on the phone.
+        val background = app.host.formFactor == FormFactor.Phone && backgroundAudioOn() && engine.isAudioOnly()
+        if (!isInPictureInPictureMode && !background) engine.pause()
     }
 
     override fun onDestroy() {
         super.onDestroy()
         // A new activity makes its own session, and two sessions may not share an id.
+        PlaybackService.detach()
         session.release()
         pipActions.unregister()
         if (isFinishing) engine.release()
@@ -221,6 +233,13 @@ class MainActivity : ComponentActivity() {
         override val formFactor = form
 
         override val deviceSettings: List<DeviceSetting> = buildList {
+            if (form == FormFactor.Phone) add(
+                DeviceSetting(
+                    Res.string.settings_background_audio, Res.string.settings_background_audio_hint,
+                    isOn = { backgroundAudioOn() },
+                    set = { setDeviceFlag(BACKGROUND_AUDIO, it); if (!it) PlaybackService.detach() },
+                ),
+            )
             if (form == FormFactor.Tv) add(
                 DeviceSetting(
                     Res.string.settings_match_frame_rate, Res.string.settings_match_frame_rate_hint,
@@ -263,8 +282,11 @@ class MainActivity : ComponentActivity() {
     private fun setDeviceFlag(key: String, on: Boolean) =
         getSharedPreferences("settings", MODE_PRIVATE).edit().putString("device.$key", on.toString()).apply()
 
+    private fun backgroundAudioOn() = deviceFlag(BACKGROUND_AUDIO, default = true)
+
     private companion object {
         const val MATCH_FRAME_RATE = "matchFrameRate"
+        const val BACKGROUND_AUDIO = "backgroundAudio"
     }
 }
 
