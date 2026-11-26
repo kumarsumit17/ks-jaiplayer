@@ -1,3 +1,7 @@
+# 2026-11-26
+
+* **Update**: [Per-platform optimization plan](plan-per-platform.md): platform tags again (owner's rule, KS-Suite d373527): `android-v`, `google-tv-v`, `mac-v`, `windows-v`, with a plain `vX.Y.Z` releasing every platform. 0368fb6 reverted. v1.6.0 already reads the release list, so it is the bridge release.
+
 # 2026-11-25
 
 * **Update**: [Dependencies](dependencies.md): new dependency `androidx.tvprovider:tvprovider` 1.1.0 (Apache-2.0), owner's decision 3 in the per-platform plan: writes the Google TV Watch Next row, which has no platform API without it. Adds only `jspecify` 1.0.0; `androidx.annotation` and `androidx.core` were already in the tree.

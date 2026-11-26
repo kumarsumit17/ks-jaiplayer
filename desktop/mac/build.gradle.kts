@@ -19,12 +19,12 @@ dependencies {
 apply(from = rootProject.file("gradle/bundled-vlc.gradle.kts"))
 
 // jpackage needs MAJOR >= 1; untagged development builds package as 1.0.0.
-val versionName = (rootProject.extra["appVersionName"] as String).substringBefore('-')
+val versionName = (rootProject.extra["appVersionName.mac"] as String).substringBefore('-')
 val installerVersion = versionName.takeIf { (it.substringBefore('.').toIntOrNull() ?: 0) >= 1 } ?: "1.0.0"
 
 compose.desktop {
     application {
-        jvmArgs += listOf("-Djaiplayer.version=${rootProject.extra["appVersionName"]}")
+        jvmArgs += listOf("-Djaiplayer.version=${rootProject.extra["appVersionName.mac"]}")
         mainClass = "com.ks.jaiplayer.mac.MainKt"
         jvmArgs += listOf("-Dapple.awt.application.appearance=NSAppearanceNameDarkAqua")
         nativeDistributions {
