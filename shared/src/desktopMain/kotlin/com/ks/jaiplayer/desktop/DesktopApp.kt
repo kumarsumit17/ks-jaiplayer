@@ -263,6 +263,29 @@ private fun FrameWindowScope.AppMenuBar(app: JaiPlayerState, config: DesktopConf
     }
 }
 
+/**
+ * macOS: Accessibility › Display › Reduce motion. Windows: "Animation effects" off
+ * (SPI_GETCLIENTAREAANIMATION). Read once at start.
+ */
+private fun systemReducesMotion(): Boolean = runCatching {
+    val os = System.getProperty("os.name")
+    when {
+        os.startsWith("Mac") -> {
+            val p = ProcessBuilder("defaults", "read", "com.apple.universalaccess", "reduceMotion").redirectErrorStream(true).start()
+            val out = p.inputStream.bufferedReader().readText().trim()
+            p.waitFor(2, java.util.concurrent.TimeUnit.SECONDS)
+            out == "1"
+        }
+        os.startsWith("Windows") -> {
+            val value = com.sun.jna.Memory(4).apply { setInt(0, 1) }
+            val ok = com.sun.jna.NativeLibrary.getInstance("user32").getFunction("SystemParametersInfoW")
+                .invokeInt(arrayOf(0x1042, 0, value, 0)) != 0
+            ok && value.getInt(0) == 0
+        }
+        else -> false
+    }
+}.getOrDefault(false)
+
 /** The height of the macOS title bar, kept free at the top when the content runs under it. */
 private const val MAC_TITLE_BAR_DP = 28
 
@@ -289,6 +312,8 @@ private class DesktopHost(
     private val window: () -> Frame?,
 ) : PlatformHost {
     override val formFactor = FormFactor.Desktop
+
+    override val reduceMotion: Boolean by lazy { systemReducesMotion() }
 
     override fun pickMedia(onPicked: (MediaRef) -> Unit) {
         choose(mediaExtensions)?.let { onPicked(mediaRefOf(it)) }

@@ -18,6 +18,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.media3.common.Player
 import androidx.media3.common.VideoSize
@@ -61,7 +63,8 @@ actual fun VideoSurface(engine: PlayerEngine, modifier: Modifier, fill: Boolean)
             }
             else -> Modifier.aspectRatio(aspect)
         }
-        Box(surface, contentAlignment = Alignment.Center) {
+        // Where the picture is in the window: picture-in-picture animates from there.
+        Box(surface.onGloballyPositioned { VideoBounds.update(it.boundsInWindow()) }, contentAlignment = Alignment.Center) {
             PlayerSurface(player = player, surfaceType = SURFACE_TYPE_SURFACE_VIEW, modifier = Modifier.matchParentSize())
             Subtitles(cues)
         }
@@ -84,3 +87,14 @@ actual fun ProvideLanguage(language: String, content: @Composable () -> Unit) {
     }
     CompositionLocalProvider(LocalConfiguration provides configuration) { key(language) { content() } }
 }
+
+/** The video's bounds in the window, for picture-in-picture's source rectangle hint (phone). */
+object VideoBounds {
+    @Volatile var rect: android.graphics.Rect? = null
+        private set
+
+    internal fun update(r: androidx.compose.ui.geometry.Rect) {
+        rect = if (r.isEmpty) null else android.graphics.Rect(r.left.toInt(), r.top.toInt(), r.right.toInt(), r.bottom.toInt())
+    }
+}
+

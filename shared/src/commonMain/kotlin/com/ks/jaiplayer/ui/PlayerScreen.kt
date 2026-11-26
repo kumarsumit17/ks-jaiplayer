@@ -1,6 +1,9 @@
 package com.ks.jaiplayer.ui
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
@@ -179,10 +182,14 @@ fun PlayerScreen(app: JaiPlayerState) {
     val rootFocus = remember { FocusRequester() }
     val playFocus = remember { FocusRequester() }
     val seekFocus = remember { FocusRequester() }
+    // Desktop: Tab moves through the buttons; Enter presses the focused one, Space stays play/pause.
+    var controlFocused by remember { mutableStateOf(false) }
     // TV: controls brought up by a seek key open on the seek bar, so holding the key keeps seeking.
     var focusSeekBar by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { runCatching { rootFocus.requestFocus() } }
     LaunchedEffect(controlsShown) {
+        // Desktop: when the controls hide, a button that had focus goes with them; the player takes it back.
+        if (form == FormFactor.Desktop && !controlsShown) runCatching { rootFocus.requestFocus() }
         if (form == FormFactor.Tv) runCatching {
             when {
                 !controlsShown -> rootFocus.requestFocus()
@@ -225,7 +232,10 @@ fun PlayerScreen(app: JaiPlayerState) {
             .background(Color.Black)
             // Desktop: keys always drive the player, whatever has focus. TV: while the controls
             // are shown, the remote moves focus between them first.
-            .onPreviewKeyEvent { if (form != FormFactor.Tv || !controlsShown) handle(it, false) else false }
+            .onPreviewKeyEvent {
+                val enterOnButton = form == FormFactor.Desktop && controlFocused && it.key in setOf(Key.Enter, Key.NumPadEnter)
+                if (enterOnButton) false else if (form != FormFactor.Tv || !controlsShown) handle(it, false) else false
+            }
             .onKeyEvent { if (form == FormFactor.Tv) handle(it, true) else false }
             .focusRequester(rootFocus)
             .focusable()
@@ -280,7 +290,14 @@ fun PlayerScreen(app: JaiPlayerState) {
         state.error?.let { ErrorBanner(it, state, Modifier.align(Alignment.Center)) }
         hint?.let { GestureHintBadge(it, Modifier.align(Alignment.Center)) }
 
-        AnimatedVisibility(controlsShown, enter = fadeIn(), exit = fadeOut(), modifier = Modifier.fillMaxSize()) {
+        // Reduce Motion (a system setting): the controls appear and go without fading.
+        val reduce = app.host.reduceMotion
+        AnimatedVisibility(
+            controlsShown,
+            enter = if (reduce) EnterTransition.None else fadeIn(),
+            exit = if (reduce) ExitTransition.None else fadeOut(),
+            modifier = Modifier.fillMaxSize().onFocusChanged { controlFocused = it.hasFocus },
+        ) {
             CompositionLocalProvider(LocalMenuOpen provides { open: Boolean -> menuOpen = open; poke() }) {
                 Controls(app, state, playFocus, seekFocus)
             }

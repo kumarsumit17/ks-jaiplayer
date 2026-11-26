@@ -65,6 +65,16 @@ class ExoPlayerEngine(context: Context) : PlayerEngine {
             if (on) C.VIDEO_CHANGE_FRAME_RATE_STRATEGY_ONLY_IF_SEAMLESS else C.VIDEO_CHANGE_FRAME_RATE_STRATEGY_OFF
     }
 
+    /**
+     * Google TV: tunnelled playback hands decoding and timing to the TV's video pipeline, which
+     * helps 4K on some low-end TVs and hurts on others, so it is the viewer's switch.
+     */
+    fun setTunneling(on: Boolean) {
+        (player.trackSelector as? androidx.media3.exoplayer.trackselection.DefaultTrackSelector)?.let { selector ->
+            selector.parameters = selector.buildUponParameters().setTunnelingEnabled(on).build()
+        }
+    }
+
     /** True once the file's tracks are known and none is video (music, podcasts, audiobooks). */
     fun isAudioOnly(): Boolean = !player.currentTracks.isEmpty && !player.currentTracks.containsType(C.TRACK_TYPE_VIDEO)
 

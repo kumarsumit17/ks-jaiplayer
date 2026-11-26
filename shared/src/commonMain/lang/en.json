@@ -71,5 +71,7 @@
   "settings.pluginUnreadable": "This file is not a KS JaiPlayer plugin",
   "settings.pluginWarning": "Added plugins run with all of the app's rights. Turn on only plugins you trust.",
   "settings.pluginRestart": "Changes apply the next time KS JaiPlayer starts.",
-  "settings.pluginFolder": "Open folder"
+  "settings.pluginFolder": "Open folder",
+  "settings.tunneling": "Tunnelled playback",
+  "settings.tunnelingHint": "Can make 4K play more smoothly on some TVs. Turn it off if the picture or sound stutters."
 }

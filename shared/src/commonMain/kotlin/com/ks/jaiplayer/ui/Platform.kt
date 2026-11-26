@@ -34,6 +34,9 @@ interface PlatformHost {
     /** The device's media library, browsed in the app instead of a picker (the Google TV app); null elsewhere. */
     val library: MediaLibrary? get() = null
 
+    /** The system's Reduce Motion (or animations off) setting: the interface then avoids fades. */
+    val reduceMotion: Boolean get() = false
+
     /** Height of a title bar drawn over the content (macOS transparent title bar), kept free at the top; 0 elsewhere. */
     val titleBarInsetDp: Int get() = 0
 

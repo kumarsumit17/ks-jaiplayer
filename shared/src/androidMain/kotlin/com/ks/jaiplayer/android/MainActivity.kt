@@ -33,6 +33,8 @@ import com.ks.jaiplayer.resources.settings_match_frame_rate_hint
 import com.ks.jaiplayer.resources.settings_background_audio
 import com.ks.jaiplayer.resources.settings_background_audio_hint
 import com.ks.jaiplayer.ui.BrightnessControl
+import com.ks.jaiplayer.resources.settings_tunneling
+import com.ks.jaiplayer.resources.settings_tunneling_hint
 import com.ks.jaiplayer.ui.FormFactor
 import com.ks.jaiplayer.ui.JaiPlayerApp
 import com.ks.jaiplayer.ui.JaiPlayerState
@@ -84,7 +86,10 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         val form = formFactorOf(this)
         engine = ExoPlayerEngine(this)
-        if (form == FormFactor.Tv) engine.setFrameRateMatching(deviceFlag(MATCH_FRAME_RATE, default = true))
+        if (form == FormFactor.Tv) {
+            engine.setFrameRateMatching(deviceFlag(MATCH_FRAME_RATE, default = true))
+            engine.setTunneling(deviceFlag(TUNNELING, default = false))
+        }
         val settings = PrefsStore(getSharedPreferences("settings", MODE_PRIVATE))
         updater = if (isPlayBuild(this)) null else androidUpdater(this, settings, updatePlatformOf(form))
         app = JaiPlayerState(
@@ -199,6 +204,8 @@ class MainActivity : ComponentActivity() {
         val ratio = if (w > 0 && h > 0) Rational(w, h) else Rational(16, 9)
         val builder = PictureInPictureParams.Builder().setAspectRatio(clamp(ratio))
             .setActions(pipActions.actions(engine.state.value.isPlaying))
+        // The animation into the window starts from the picture itself, not the whole screen.
+        com.ks.jaiplayer.ui.VideoBounds.rect?.let { builder.setSourceRectHint(it) }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             // Video is not resized seamlessly (that is for other content); the system cross-fades it.
             builder.setAutoEnterEnabled(autoEnter).setSeamlessResizeEnabled(false)
@@ -249,6 +256,10 @@ class MainActivity : ComponentActivity() {
     private fun host(form: FormFactor) = object : PlatformHost {
         override val formFactor = form
 
+        // "Remove animations" in Android's accessibility settings sets the animator scale to 0.
+        override val reduceMotion: Boolean
+            get() = android.provider.Settings.Global.getFloat(contentResolver, android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
+
         override val brightness: BrightnessControl? = if (form != FormFactor.Phone) null else object : BrightnessControl {
             override fun current(): Float = window.attributes.screenBrightness.takeIf { it >= 0f }
                 ?: (android.provider.Settings.System.getInt(contentResolver, android.provider.Settings.System.SCREEN_BRIGHTNESS, 128) / 255f)
@@ -269,6 +280,13 @@ class MainActivity : ComponentActivity() {
                     Res.string.settings_match_frame_rate, Res.string.settings_match_frame_rate_hint,
                     isOn = { deviceFlag(MATCH_FRAME_RATE, default = true) },
                     set = { setDeviceFlag(MATCH_FRAME_RATE, it); engine.setFrameRateMatching(it) },
+                ),
+            )
+            if (form == FormFactor.Tv) add(
+                DeviceSetting(
+                    Res.string.settings_tunneling, Res.string.settings_tunneling_hint,
+                    isOn = { deviceFlag(TUNNELING, default = false) },
+                    set = { setDeviceFlag(TUNNELING, it); engine.setTunneling(it) },
                 ),
             )
         }
@@ -311,6 +329,7 @@ class MainActivity : ComponentActivity() {
     private companion object {
         const val MATCH_FRAME_RATE = "matchFrameRate"
         const val BACKGROUND_AUDIO = "backgroundAudio"
+        const val TUNNELING = "tunneling"
     }
 }
 
