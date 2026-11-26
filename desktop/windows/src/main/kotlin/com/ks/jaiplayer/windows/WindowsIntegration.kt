@@ -16,13 +16,14 @@ import java.net.URI
  * - the display stays awake while a video plays (`SetThreadExecutionState`);
  * - each opened file goes to the taskbar and Start jump list (`SHAddToRecentDocs`);
  * - the title bar is dark like the app (`DwmSetWindowAttribute`, Windows 10 1809 and later).
- * The system media overlay (SMTC) comes later, by the owner's decision.
+ * - the system media overlay and media keys ([MediaControls], SMTC).
  * Every call is made on the window's thread, which lives as long as the app, as
  * `SetThreadExecutionState` requires. Anything that fails is skipped.
  */
 class WindowsIntegration : DesktopIntegration {
     private var awake = false
     private var lastUri: String? = null
+    private var media: MediaControls? = null
 
     override fun start(window: java.awt.Window, perform: (PlayerAction) -> Unit) {
         runCatching {
@@ -31,9 +32,15 @@ class WindowsIntegration : DesktopIntegration {
             // DWMWA_USE_IMMERSIVE_DARK_MODE is 20 (19 before Windows 10 20H1).
             if (Dwm.INSTANCE.DwmSetWindowAttribute(hwnd, 20, on, 4) != 0) Dwm.INSTANCE.DwmSetWindowAttribute(hwnd, 19, on, 4)
         }
+        // The media overlay and media keys; button presses arrive on a Windows thread.
+        runCatching {
+            val hwnd = Native.getWindowPointer(window) ?: return@runCatching
+            media = MediaControls.create(hwnd) { action, _ -> javax.swing.SwingUtilities.invokeLater { perform(action) } }
+        }
     }
 
     override fun update(nowPlaying: NowPlaying?, hasVideo: Boolean) {
+        runCatching { media?.update(nowPlaying) }
         val wantAwake = nowPlaying?.playing == true && hasVideo
         if (wantAwake != awake) {
             runCatching {
@@ -52,6 +59,7 @@ class WindowsIntegration : DesktopIntegration {
     }
 
     override fun stop() {
+        media?.close()
         if (awake) runCatching { Kernel32.INSTANCE.SetThreadExecutionState(ES_CONTINUOUS) }
         awake = false
     }

@@ -1,5 +1,6 @@
 # 2026-11-26
 
+* **Update**: [Per-platform optimization plan](plan-per-platform.md): Windows System Media Transport Controls built (media overlay, media keys, lock screen; title, state, timeline, buttons), through WinRT COM and JNA; not yet run on Windows.
 * **Update**: [Per-platform optimization plan](plan-per-platform.md): TV rechecks done (50, 85 and 100 inch play, pause and resume, no crashes); step 2 complete.
 * **Creation**: [Writing a desktop plugin](writing-plugins.md) added: third-party plugin jars for macOS and Windows (manifest-identified, off until turned on, versioned API 1), the Settings › Plugins section and the sample Loop plugin. [Plugins](plugins.md) and [Bundled libVLC and third-party plugins](plan-bundled-vlc-and-plugins.md) updated: section 2 built.
 * **Update**: [Per-platform optimization plan](plan-per-platform.md): step 7 (accessibility) built: subtitles drawn on Android in the system caption style (they were not shown before), the seek bar read as a time.
