@@ -1,5 +1,6 @@
 # 2026-11-26
 
+* **Update**: ks-utility moved to v0.14.0 (newest tag, before the release), in the submodule pin and the release workflow.
 * **Update**: [Per-platform optimization plan](plan-per-platform.md): fixed a crash on Android 8 to 12 (the update checker used `InputStream.readNBytes`); TV side panels and tunnelled playback; picture-in-picture source hint, its own buttons tested on Android 12, app controls hidden and orientation released in the window; desktop Tab focus; Reduce Motion.
 * **Update**: [Per-platform optimization plan](plan-per-platform.md): Windows folder picker (`IFileOpenDialog`) and system look for dialogs; taskbar thumbnail buttons left out (too risky without a Windows machine; the media overlay covers them).
 * **Update**: [Per-platform optimization plan](plan-per-platform.md): macOS items built: VideoToolbox for files without subtitles (4K HEVC about 15 % CPU instead of 65 %), trackpad seeking and wheel volume, transparent title bar, Dock menu; start-up measured, AppCDS left for later.
