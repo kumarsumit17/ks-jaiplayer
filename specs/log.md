@@ -1,5 +1,6 @@
 # 2026-11-26
 
+* **Update**: [Per-platform optimization plan](plan-per-platform.md): macOS items built: VideoToolbox for files without subtitles (4K HEVC about 15 % CPU instead of 65 %), trackpad seeking and wheel volume, transparent title bar, Dock menu; start-up measured, AppCDS left for later.
 * **Update**: [Per-platform optimization plan](plan-per-platform.md): Windows System Media Transport Controls built (media overlay, media keys, lock screen; title, state, timeline, buttons), through WinRT COM and JNA; not yet run on Windows.
 * **Update**: [Per-platform optimization plan](plan-per-platform.md): TV rechecks done (50, 85 and 100 inch play, pause and resume, no crashes); step 2 complete.
 * **Creation**: [Writing a desktop plugin](writing-plugins.md) added: third-party plugin jars for macOS and Windows (manifest-identified, off until turned on, versioned API 1), the Settings › Plugins section and the sample Loop plugin. [Plugins](plugins.md) and [Bundled libVLC and third-party plugins](plan-bundled-vlc-and-plugins.md) updated: section 2 built.

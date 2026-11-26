@@ -26,21 +26,31 @@ fun main(args: Array<String>) {
         DesktopConfig(
             vlcLocations = vlcLocations(),
             vlcArgs = MAC_VLC_ARGS,
+            hardwareDecoding = MAC_HARDWARE_DECODING,
             systemLanguages = preferredLanguages(),
             initialFiles = args.map(::File).filter { it.exists() },
             systemAppMenu = true,
             useMetaShortcuts = true,
             nativeFolderDialog = true,
             integration = MacIntegration(),
+            transparentTitleBar = true,
         ),
     )
 }
 
 /**
- * VideoToolbox decodes into GPU buffers that libVLC cannot draw subtitles onto when frames go
- * through callbacks ("blending YUVA to CVPN failed"), so decoding is done by libavcodec in software.
+ * Software decoding (libavcodec) is the default, because libVLC cannot draw subtitles onto
+ * VideoToolbox frames delivered through callbacks ("blending YUVA to CVPN failed").
+ * `JAIPLAYER_VLC_ARGS` replaces these options, for diagnosis only.
  */
-val MAC_VLC_ARGS = listOf("--codec=avcodec,all", "--avcodec-hw=none")
+val MAC_VLC_ARGS: List<String> = System.getenv("JAIPLAYER_VLC_ARGS")?.split(' ')?.filter { it.isNotBlank() }
+    ?: listOf("--codec=avcodec,all", "--avcodec-hw=none")
+
+/**
+ * Files without subtitles decode with VideoToolbox, at about half the CPU for 4K HEVC; when a
+ * subtitle comes into play the engine goes on in software at the same place.
+ */
+val MAC_HARDWARE_DECODING: String? = ":codec=videotoolbox,avcodec,all".takeUnless { System.getenv("JAIPLAYER_NO_HW") == "1" }
 
 /**
  * The libVLC bundled in the app. JAIPLAYER_VLC_PATH (a VLC.app, for diagnosis only) replaces it;

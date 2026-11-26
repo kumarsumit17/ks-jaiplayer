@@ -18,8 +18,23 @@ internal object FrameStats {
         if (enabled) decoded.incrementAndGet()
     }
 
+    @Volatile private var firstFrameLogged = false
+
+    /** With JAIPLAYER_PERF=1: prints how long after the process started [what] happened. */
+    fun mark(what: String) {
+        if (!enabled) return
+        val started = ProcessHandle.current().info().startInstant().orElse(null) ?: return
+        System.err.println("jaiplayer-startup $what=${java.time.Duration.between(started, java.time.Instant.now()).toMillis()}")
+    }
+
     fun frameDrawn(drawNs: Long) {
         if (!enabled) return
+        if (!firstFrameLogged) {
+            firstFrameLogged = true
+            // From the process starting to the first video frame on screen (cold start).
+            val started = ProcessHandle.current().info().startInstant().orElse(null)
+            if (started != null) System.err.println("jaiplayer-startup firstFrameMs=${java.time.Duration.between(started, java.time.Instant.now()).toMillis()}")
+        }
         drawn.incrementAndGet()
         slowestDrawNs.accumulateAndGet(drawNs, ::maxOf)
         val now = System.nanoTime()

@@ -34,6 +34,9 @@ interface PlatformHost {
     /** The device's media library, browsed in the app instead of a picker (the Google TV app); null elsewhere. */
     val library: MediaLibrary? get() = null
 
+    /** Height of a title bar drawn over the content (macOS transparent title bar), kept free at the top; 0 elsewhere. */
+    val titleBarInsetDp: Int get() = 0
+
     /** The screen's brightness for the player (the phone's left-side swipe); null where it cannot be set. */
     val brightness: BrightnessControl? get() = null
 

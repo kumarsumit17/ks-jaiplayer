@@ -34,6 +34,11 @@ import java.util.concurrent.atomic.AtomicLong
 class VlcPlayerEngine private constructor(
     private val vlc: LoadedVlc?,
     private val extraArgs: List<String>,
+    /**
+     * A media option that decodes in hardware (macOS: VideoToolbox), used for files without
+     * subtitles, since libVLC cannot draw subtitles onto those frames; null for none.
+     */
+    private val hardwareOption: String?,
 ) : PlayerEngine {
 
     private val _state = MutableStateFlow(
@@ -56,12 +61,18 @@ class VlcPlayerEngine private constructor(
     private val pendingSeek = AtomicLong(-1)
     @Volatile private var seekTarget = -1L
     @Volatile private var seekShownUntil = 0L
+    /** Whether the current file decodes in hardware ([hardwareOption]); only touched on the libVLC thread. */
+    private var hardwareNow = false
+    private var currentPath: String? = null
+    private var slaveAfterSwitch: String? = null
+    private var spuAfterSwitch: Int? = null
 
     /** The libVLC version in use, or null when it could not be loaded. */
     val vlcVersion: String? = vlc?.version
 
     init {
         if (lib != null) scope.launch {
+            FrameStats.mark("libvlcNewStart")
             val args = vlcArgs(withStats = FrameStats.enabled || STATS_ARG in extraArgs) + extraArgs.filter { it != STATS_ARG }
             val inst = lib.libvlc_new(args.size, args)
             val mp = inst?.let(lib::libvlc_media_player_new)
@@ -73,6 +84,7 @@ class VlcPlayerEngine private constructor(
             lib.libvlc_video_set_callbacks(mp, frames.lockFrame, null, frames.display, null)
             instance = inst
             player = mp
+            FrameStats.mark("libvlcReady")
             poll()
         }
     }
@@ -96,17 +108,66 @@ class VlcPlayerEngine private constructor(
             l.libvlc_media_player_stop(mp)
             frames.clear()
             val path = runCatching { File(URI(media.uri)).path }.getOrNull()
-            val m = path?.let { l.libvlc_media_new_path(inst, it) }
-            if (m == null) {
-                _state.update { it.copy(status = PlaybackStatus.Error, error = PlayerError.CannotOpen) }
-                return@launch
-            }
-            l.libvlc_media_player_set_media(mp, m)
-            l.libvlc_media_release(m)
-            if (l.libvlc_media_player_play(mp) != 0) {
+            currentPath = path
+            val hardware = hardwareOption != null && path != null && !hasSubtitles(l, inst, path)
+            if (path == null || !start(l, inst, mp, path, hardware, startMs = 0)) {
                 _state.update { it.copy(status = PlaybackStatus.Error, error = PlayerError.CannotOpen) }
             }
         }
+    }
+
+    /** Starts [path] from [startMs], decoding in hardware or software; false if libVLC refuses it. */
+    private fun start(l: LibVlc, inst: Pointer, mp: Pointer, path: String, hardware: Boolean, startMs: Long): Boolean {
+        val m = l.libvlc_media_new_path(inst, path) ?: return false
+        if (hardware) hardwareOption?.let { l.libvlc_media_add_option(m, it) }
+        if (startMs > 0) l.libvlc_media_add_option(m, ":start-time=${startMs / 1000.0}")
+        l.libvlc_media_player_set_media(mp, m)
+        l.libvlc_media_release(m)
+        hardwareNow = hardware
+        return l.libvlc_media_player_play(mp) == 0
+    }
+
+    /**
+     * Whether subtitles may show for [path]: a subtitle file beside it (libVLC loads those by
+     * itself) or a subtitle track inside it (a quick parse of the local file).
+     */
+    private fun hasSubtitles(l: LibVlc, inst: Pointer, path: String): Boolean {
+        val file = File(path)
+        val base = file.nameWithoutExtension.lowercase()
+        val beside = file.parentFile?.listFiles()?.any { f ->
+            f.extension.lowercase() in SUBTITLE_EXTENSIONS && f.name.lowercase().startsWith(base)
+        } ?: false
+        if (beside) return true
+        return runCatching {
+            val m = l.libvlc_media_new_path(inst, path) ?: return@runCatching true
+            try {
+                l.libvlc_media_parse(m)
+                val ref = com.sun.jna.ptr.PointerByReference()
+                val count = l.libvlc_media_tracks_get(m, ref)
+                val tracks = ref.value
+                val text = tracks != null && (0 until count).any { i ->
+                    tracks.getPointer(i.toLong() * Native.POINTER_SIZE).getInt(TRACK_TYPE_OFFSET) == TRACK_TEXT
+                }
+                if (tracks != null) l.libvlc_media_tracks_release(tracks, count)
+                text
+            } finally {
+                l.libvlc_media_release(m)
+            }
+        }.getOrDefault(true)
+    }
+
+    /**
+     * Restarts the current file at the same place with software decoding, so subtitles can be
+     * drawn; then adds [slave] or selects [spu] once it plays. Runs on the libVLC thread.
+     */
+    private fun switchToSoftware(l: LibVlc, mp: Pointer, slave: String? = null, spu: Int? = null) {
+        val inst = instance ?: return
+        val path = currentPath ?: return
+        val position = l.libvlc_media_player_get_time(mp).coerceAtLeast(0)
+        slaveAfterSwitch = slave
+        spuAfterSwitch = spu
+        l.libvlc_media_player_stop(mp)
+        start(l, inst, mp, path, hardware = false, startMs = position)
     }
 
     override fun play() = call { mp ->
@@ -159,11 +220,13 @@ class VlcPlayerEngine private constructor(
 
     override fun selectSubtitleTrack(id: Int?) {
         _state.update { it.copy(subtitleTrackId = id) }
-        call { mp -> libvlc_video_set_spu(mp, id ?: -1) }
+        call { mp ->
+            if (hardwareNow && id != null) switchToSoftware(this, mp, spu = id) else libvlc_video_set_spu(mp, id ?: -1)
+        }
     }
 
     override fun addSubtitle(uri: String) = call { mp ->
-        libvlc_media_player_add_slave(mp, LibVlc.SLAVE_SUBTITLE, uri, 1)
+        if (hardwareNow) switchToSoftware(this, mp, slave = uri) else libvlc_media_player_add_slave(mp, LibVlc.SLAVE_SUBTITLE, uri, 1)
     }
 
     override fun stop() {
@@ -218,6 +281,16 @@ class VlcPlayerEngine private constructor(
                     LibVlc.STATE_ENDED -> PlaybackStatus.Ended
                     LibVlc.STATE_ERROR -> PlaybackStatus.Error
                     else -> current.status
+                }
+                // A subtitle came into play on a hardware-decoded file: go on in software.
+                if (hardwareNow && vlcState == LibVlc.STATE_PLAYING && l.libvlc_video_get_spu(mp) >= 0) {
+                    switchToSoftware(l, mp, spu = l.libvlc_video_get_spu(mp))
+                }
+                if (!hardwareNow && vlcState == LibVlc.STATE_PLAYING && (slaveAfterSwitch != null || spuAfterSwitch != null)) {
+                    slaveAfterSwitch?.let { l.libvlc_media_player_add_slave(mp, LibVlc.SLAVE_SUBTITLE, it, 1) }
+                    spuAfterSwitch?.let { l.libvlc_video_set_spu(mp, it) }
+                    slaveAfterSwitch = null
+                    spuAfterSwitch = null
                 }
                 if (vlcState == LibVlc.STATE_PLAYING && lastVlcState != LibVlc.STATE_PLAYING) {
                     // The audio output exists only once playing; apply the wanted volume then.
@@ -301,8 +374,17 @@ class VlcPlayerEngine private constructor(
         }
 
         /** Loads libVLC from the first working [locations]; without one, the engine reports [PlayerError.EngineMissing]. */
-        fun create(locations: List<VlcLocation>, extraArgs: List<String> = emptyList()): VlcPlayerEngine =
-            VlcPlayerEngine(VlcLoader.load(locations), extraArgs)
+        fun create(locations: List<VlcLocation>, extraArgs: List<String> = emptyList(), hardwareOption: String? = null): VlcPlayerEngine {
+            FrameStats.mark("engineCreate")
+            val vlc = VlcLoader.load(locations)
+            FrameStats.mark("libvlcLoaded")
+            return VlcPlayerEngine(vlc, extraArgs, hardwareOption)
+        }
+
+        private val SUBTITLE_EXTENSIONS = setOf("srt", "ass", "ssa", "vtt", "sub", "idx", "smi", "txt")
+        /** libvlc_media_track_t: i_codec, i_original_fourcc, i_id, then i_type (4 bytes each). */
+        private const val TRACK_TYPE_OFFSET = 12L
+        private const val TRACK_TEXT = 2
     }
 }
 

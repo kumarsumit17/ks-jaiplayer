@@ -25,13 +25,41 @@ class MacIntegration : DesktopIntegration {
     private val objc by lazy { runCatching { ObjC() }.getOrNull() }
     private var lastInfo: NowPlaying? = null
 
-    override fun start(window: java.awt.Window, perform: (PlayerAction) -> Unit) {
+    override fun start(window: java.awt.Window, labels: com.ks.jaiplayer.desktop.IntegrationLabels, perform: (PlayerAction) -> Unit) {
         this.perform = perform
         runCatching { objc?.registerCommands(::onCommand) }
+        runCatching { dockMenu(labels) }
+    }
+
+    private var dockItems: Triple<java.awt.MenuItem, java.awt.MenuItem, java.awt.MenuItem>? = null
+
+    /** Right-click on the Dock icon: play or pause, next and previous episode. */
+    private fun dockMenu(labels: com.ks.jaiplayer.desktop.IntegrationLabels) {
+        val taskbar = java.awt.Taskbar.getTaskbar()
+        if (!taskbar.isSupported(java.awt.Taskbar.Feature.MENU)) return
+        val playItem = java.awt.MenuItem(labels.play).apply { addActionListener { onCommand(PlayerAction.TogglePlay) } }
+        val nextItem = java.awt.MenuItem(labels.next).apply { addActionListener { onCommand(PlayerAction.NextItem) } }
+        val previousItem = java.awt.MenuItem(labels.previous).apply { addActionListener { onCommand(PlayerAction.PreviousItem) } }
+        taskbar.menu = java.awt.PopupMenu().apply { add(playItem); add(previousItem); add(nextItem) }
+        dockItems = Triple(playItem, nextItem, previousItem)
+        dockLabels = labels.play to labels.pause
+        refreshDock(null)
+    }
+
+    private var dockLabels: Pair<String, String>? = null
+
+    private fun refreshDock(info: NowPlaying?) {
+        val (playItem, nextItem, previousItem) = dockItems ?: return
+        val (play, pause) = dockLabels ?: return
+        playItem.label = if (info?.playing == true) pause else play
+        playItem.isEnabled = info != null
+        nextItem.isEnabled = info?.hasNext == true
+        previousItem.isEnabled = info?.hasPrevious == true
     }
 
     override fun update(nowPlaying: NowPlaying?, hasVideo: Boolean) {
         keepAwake(nowPlaying?.playing == true && hasVideo)
+        runCatching { refreshDock(nowPlaying) }
         if (nowPlaying == lastInfo) return
         val previous = lastInfo
         lastInfo = nowPlaying

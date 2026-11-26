@@ -25,7 +25,7 @@ class WindowsIntegration : DesktopIntegration {
     private var lastUri: String? = null
     private var media: MediaControls? = null
 
-    override fun start(window: java.awt.Window, perform: (PlayerAction) -> Unit) {
+    override fun start(window: java.awt.Window, labels: com.ks.jaiplayer.desktop.IntegrationLabels, perform: (PlayerAction) -> Unit) {
         runCatching {
             val hwnd = Native.getWindowPointer(window) ?: return@runCatching
             val on = Memory(4).apply { setInt(0, 1) }

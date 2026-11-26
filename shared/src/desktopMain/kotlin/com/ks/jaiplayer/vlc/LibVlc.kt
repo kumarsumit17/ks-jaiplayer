@@ -22,6 +22,11 @@ internal interface LibVlc : Library {
     /** Fills a libvlc_media_stats_t (15 four-byte fields); returns 1 when the stats are valid. */
     fun libvlc_media_get_stats(media: Pointer, stats: Pointer): Int
     fun libvlc_media_player_get_media(player: Pointer): Pointer?
+    fun libvlc_media_add_option(media: Pointer, option: String)
+    /** Synchronous parse (local files only here): fills the media's track list. */
+    fun libvlc_media_parse(media: Pointer)
+    fun libvlc_media_tracks_get(media: Pointer, tracks: com.sun.jna.ptr.PointerByReference): Int
+    fun libvlc_media_tracks_release(tracks: Pointer, count: Int)
 
     fun libvlc_media_player_new(instance: Pointer): Pointer?
     fun libvlc_media_player_release(player: Pointer)

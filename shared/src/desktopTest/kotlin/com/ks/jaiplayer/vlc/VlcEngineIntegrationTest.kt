@@ -89,6 +89,33 @@ class VlcEngineIntegrationTest {
         return n
     }
 
+    /** macOS: a file without subtitles decodes with VideoToolbox; adding one goes on in software at the same place. */
+    @Test fun hardwareFileGoesOnInSoftwareWhenASubtitleIsAdded(): Unit = runBlocking {
+        if (!vlcDir.isDirectory || media?.isFile != true || !System.getProperty("os.name").startsWith("Mac")) {
+            return@runBlocking println("Skipped: macOS, the bundled VLC and JAIPLAYER_TEST_MEDIA needed")
+        }
+        val engine = VlcPlayerEngine.create(
+            listOf(VlcLocation(File(vlcDir, "lib"), File(vlcDir, "plugins"))),
+            listOf("--codec=avcodec,all", "--avcodec-hw=none"),
+            hardwareOption = ":codec=videotoolbox,avcodec,all",
+        )
+        try {
+            engine.open(mediaRefOf(media!!))
+            engine.await("playing") { it.status == PlaybackStatus.Playing && it.positionMs > 3_000 }
+            val before = engine.state.value.positionMs
+            val srt = File.createTempFile("jaiplayer", ".srt").apply {
+                writeText("1\n00:00:00,000 --> 00:10:00,000\nHello\n")
+                deleteOnExit()
+            }
+            engine.addSubtitle(fileUri(srt))
+            engine.await("subtitle track after the switch", ms = 15_000) { it.subtitleTracks.isNotEmpty() && it.status == PlaybackStatus.Playing }
+            val after = engine.state.value.positionMs
+            assertTrue(after >= before - 1_500, "went back to the start: $before → $after")
+        } finally {
+            engine.release()
+        }
+    }
+
     @Test fun missingVlcIsReportedNotThrown() {
         val engine = VlcPlayerEngine.create(listOf(VlcLocation(File("/nonexistent"))))
         assertEquals(PlayerError.EngineMissing, engine.state.value.error)

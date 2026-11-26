@@ -1,6 +1,9 @@
 package com.ks.jaiplayer.desktop
 
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.window.WindowDraggableArea
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
@@ -75,6 +78,8 @@ class DesktopConfig(
     val vlcLocations: List<VlcLocation>,
     /** libVLC options this platform needs. */
     val vlcArgs: List<String> = emptyList(),
+    /** A per-file libVLC option that decodes in hardware, used for files without subtitles; null for none. */
+    val hardwareDecoding: String? = null,
     /** The system's preferred languages, most preferred first. */
     val systemLanguages: List<String>,
     /** Files to open at start, e.g. from the command line. */
@@ -87,6 +92,8 @@ class DesktopConfig(
     val nativeFolderDialog: Boolean = false,
     /** The features added to the minimal core; see specs/plugins.md. */
     val plugins: List<JaiPlugin> = builtInPlugins(),
+    /** macOS: the content runs under a transparent title bar, as in QuickTime. */
+    val transparentTitleBar: Boolean = false,
     /** This OS's Now Playing, media keys and stay-awake; null for none. */
     val integration: DesktopIntegration? = null,
 )
@@ -102,15 +109,16 @@ object ExternalOpen {
 
 /** Runs the desktop app (macOS or Windows): one window, the shared interface and a menu bar. */
 fun runDesktopApp(config: DesktopConfig) {
+    com.ks.jaiplayer.vlc.FrameStats.mark("main")
     ExternalOpen.open(config.initialFiles)
     application {
-        val engine = remember { VlcPlayerEngine.create(config.vlcLocations, config.vlcArgs) }
+        val engine = remember { VlcPlayerEngine.create(config.vlcLocations, config.vlcArgs, config.hardwareDecoding) }
         val windowState = rememberWindowState(size = DpSize(1120.dp, 720.dp))
         val windowRef = remember { arrayOfNulls<Frame>(1) }
         val settings = remember { PrefsSettingsStore() }
         // Built-in plugins plus the jars added to the plugins folder (only those switched on load).
         val pluginManager = remember { DesktopPlugins(settings, config.plugins) }
-        val host = remember { DesktopHost(config.nativeFolderDialog, pluginManager) { windowRef[0] } }
+        val host = remember { DesktopHost(config.nativeFolderDialog, pluginManager, if (config.transparentTitleBar) MAC_TITLE_BAR_DP else 0) { windowRef[0] } }
         val updater = remember { desktopUpdater(settings) { engine.release() } }
         val app = remember { JaiPlayerState(engine, host, settings, config.systemLanguages, pluginManager.active(), updater) }
 
@@ -121,9 +129,22 @@ fun runDesktopApp(config: DesktopConfig) {
             title = "KS JaiPlayer",
         ) {
             windowRef[0] = window
+            LaunchedEffect(Unit) { com.ks.jaiplayer.vlc.FrameStats.mark("windowComposed") }
+            if (config.transparentTitleBar) LaunchedEffect(Unit) {
+                window.rootPane.putClientProperty("apple.awt.fullWindowContent", true)
+                window.rootPane.putClientProperty("apple.awt.transparentTitleBar", true)
+                // The app shows the file's name itself, so the title bar shows only the traffic lights.
+                window.rootPane.putClientProperty("apple.awt.windowTitleVisible", false)
+            }
             config.integration?.let { integration ->
                 LaunchedEffect(Unit) {
-                    integration.start(window) { action ->
+                    val labels = IntegrationLabels(
+                        play = org.jetbrains.compose.resources.getString(Res.string.player_play),
+                        pause = org.jetbrains.compose.resources.getString(Res.string.common_pause),
+                        next = org.jetbrains.compose.resources.getString(Res.string.player_next),
+                        previous = org.jetbrains.compose.resources.getString(Res.string.player_previous),
+                    )
+                    integration.start(window, labels) { action ->
                         when (action) {
                             PlayerAction.NextItem -> app.next()
                             PlayerAction.PreviousItem -> app.previous()
@@ -156,7 +177,16 @@ fun runDesktopApp(config: DesktopConfig) {
                 val appName = stringResource(Res.string.app_name)
                 window.title = app.playlist?.current?.title?.takeIf { app.screen == Screen.Player } ?: appName
                 AppMenuBar(app, config, quit)
-                JaiPlayerApp(app)
+                androidx.compose.foundation.layout.Box {
+                    JaiPlayerApp(app)
+                    // The transparent title bar's strip still moves the window (the traffic lights
+                    // are drawn by macOS above it).
+                    if (config.transparentTitleBar) {
+                        WindowDraggableArea(
+                            androidx.compose.ui.Modifier.fillMaxWidth().height(MAC_TITLE_BAR_DP.dp),
+                        ) {}
+                    }
+                }
             }
         }
     }
@@ -228,6 +258,9 @@ private fun FrameWindowScope.AppMenuBar(app: JaiPlayerState, config: DesktopConf
     }
 }
 
+/** The height of the macOS title bar, kept free at the top when the content runs under it. */
+private const val MAC_TITLE_BAR_DP = 28
+
 private const val HELP_URL = "https://github.com/kumasumit/ks-jaiplayer"
 
 @Composable
@@ -246,6 +279,7 @@ private fun MenuScope.PluginEntry(entry: MenuEntry, state: PluginScreenState) {
 private class DesktopHost(
     private val nativeFolderDialog: Boolean,
     override val plugins: PluginManager,
+    override val titleBarInsetDp: Int,
     private val window: () -> Frame?,
 ) : PlatformHost {
     override val formFactor = FormFactor.Desktop

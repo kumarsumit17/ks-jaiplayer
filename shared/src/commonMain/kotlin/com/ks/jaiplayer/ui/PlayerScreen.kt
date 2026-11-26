@@ -108,6 +108,42 @@ import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
 private const val HIDE_AFTER_MS = 3_000L
+private const val SCROLL_HINT_MS = 700L
+
+/**
+ * Turns desktop scrolling into seeking and volume. Sideways movement (a trackpad swipe) adds up
+ * and seeks 2 seconds per step, vertical movement changes the volume 5 per step; the stronger
+ * direction of each event wins, so a slightly diagonal swipe does one thing.
+ */
+private class DesktopScroll {
+    private var sideways = 0f
+    private var vertical = 0f
+
+    fun handle(dx: Float, dy: Float, state: PlaybackState, controller: PlayerController): GestureHint? {
+        if (kotlin.math.abs(dx) > kotlin.math.abs(dy)) {
+            if (!state.canSeek) return null
+            sideways += dx
+            val steps = sideways.toInt()
+            if (steps == 0) return null
+            sideways -= steps
+            val target = (state.positionMs + steps * SEEK_PER_STEP_MS).coerceIn(0, state.durationMs)
+            controller.seekTo(target)
+            return GestureHint.Seek(target, target - state.positionMs)
+        }
+        vertical += dy
+        val steps = vertical.toInt()
+        if (steps == 0) return null
+        vertical -= steps
+        val level = (state.volume - steps * VOLUME_PER_STEP).coerceIn(0, PlayerController.MAX_VOLUME)
+        controller.setVolume(level)
+        return GestureHint.Volume(level)
+    }
+
+    private companion object {
+        const val SEEK_PER_STEP_MS = 2_000L
+        const val VOLUME_PER_STEP = 5
+    }
+}
 private val SEEK_ACTIONS = setOf(PlayerAction.SeekBack, PlayerAction.SeekForward, PlayerAction.SeekBackLong, PlayerAction.SeekForwardLong)
 
 @Composable
@@ -125,6 +161,12 @@ fun PlayerScreen(app: JaiPlayerState) {
     var fill by remember { mutableStateOf(false) }
     var hint by remember { mutableStateOf<GestureHint?>(null) }
     var fastSpeedBefore by remember { mutableStateOf<Float?>(null) }
+    // Desktop: a hint from the trackpad or wheel fades a moment after the last scroll.
+    var scrollHintAt by remember { mutableIntStateOf(0) }
+    LaunchedEffect(scrollHintAt) {
+        if (scrollHintAt > 0) { delay(SCROLL_HINT_MS); if (fastSpeedBefore == null) hint = null }
+    }
+    val scroll = remember { DesktopScroll() }
     LaunchedEffect(interaction, state.isPlaying, menuOpen) {
         if (state.isPlaying && !menuOpen) {
             delay(HIDE_AFTER_MS)
@@ -193,6 +235,12 @@ fun PlayerScreen(app: JaiPlayerState) {
                     while (true) {
                         val e = awaitPointerEvent()
                         if (e.type == PointerEventType.Move || e.type == PointerEventType.Press) poke()
+                        // Desktop: a two-finger sideways swipe seeks; the wheel or a vertical swipe changes the volume.
+                        if (form == FormFactor.Desktop && e.type == PointerEventType.Scroll) {
+                            val delta = e.changes.first().scrollDelta
+                            scroll.handle(delta.x, delta.y, app.engine.state.value, controller)?.let { hint = it; scrollHintAt++ }
+                            e.changes.forEach { it.consume() }
+                        }
                     }
                 }
             }
@@ -292,6 +340,8 @@ private fun Controls(app: JaiPlayerState, state: PlaybackState, playFocus: Focus
         Row(
             Modifier.align(Alignment.TopCenter).fillMaxWidth()
                 .background(Brush.verticalGradient(listOf(scrim, Color.Transparent)))
+                // macOS: the traffic lights sit in a transparent title bar above this row.
+                .padding(top = app.host.titleBarInsetDp.dp)
                 .padding(m.safe),
             verticalAlignment = Alignment.CenterVertically,
         ) {

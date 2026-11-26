@@ -15,6 +15,9 @@ data class NowPlaying(
     val hasPrevious: Boolean,
 )
 
+/** Interface text an integration shows itself (the macOS Dock menu), in the app's language. */
+data class IntegrationLabels(val play: String, val pause: String, val next: String, val previous: String)
+
 /**
  * One desktop OS's integrations, given by the entry point (desktop/mac, desktop/windows):
  * keeping the display awake while a video plays, the system's Now Playing and its media keys.
@@ -23,7 +26,7 @@ data class NowPlaying(
  */
 interface DesktopIntegration {
     /** Called once the [window] is shown; [perform] runs a player action on the window's thread. */
-    fun start(window: java.awt.Window, perform: (PlayerAction) -> Unit)
+    fun start(window: java.awt.Window, labels: IntegrationLabels, perform: (PlayerAction) -> Unit)
 
     /** The playback now; [nowPlaying] is null when nothing is open. */
     fun update(nowPlaying: NowPlaying?, hasVideo: Boolean)
