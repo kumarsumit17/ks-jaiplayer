@@ -7,7 +7,7 @@ tags: [plan, platforms, macos, windows, android, google-tv, accessibility, perfo
 
 # Per-platform optimization plan
 
-**Status: approved by the owner on 2026-11-25.** Versions: one tag per platform (`android-v`, `google-tv-v`, `mac-v`, `windows-v`), with a plain `vX.Y.Z` still releasing all four (suite rule, KS-Suite [versioning-signing](https://github.com/kumarsumit17/KS-Suite/blob/main/specs/versioning-signing.md), "Platform tags"). Decisions 2 to 5 are recorded in section 3. Built steps are marked under section 4.
+**Status: approved by the owner on 2026-11-25.** Versions: one tag per platform (`android-v`, `google-tv-v`, `mac-v`, `windows-v`), with a plain `vX.Y.Z` still releasing all four (suite rule, KS-Suite [versioning-signing](https://github.com/kumasumit/KS-Suite/blob/main/specs/versioning-signing.md), "Platform tags"). Decisions 2 to 5 are recorded in section 3. Built steps are marked under section 4.
 
 Goal: each build is the best media player on its platform, not one lowest-common-denominator build. The shared player core, plugin API and interface stay in `shared/` (written once); what differs per OS goes in that platform's folder, or in `shared/src/androidMain` when both Android apps need it (see [Constraints](constraints.md), [Module layout](module-layout.md)).
 

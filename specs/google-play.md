@@ -10,7 +10,7 @@ tags: [google-play, release, android, google-tv, listing]
 ## Ready in the repository
 - **Bundles.** Every release publishes two AABs built for Play: `ks-jaiplayer-v<version>.aab` (phone) and `ks-jaiplayer-v<version>-google-tv.aab` (TV). They come from the `play` build type, so they have no in-app updater and no `REQUEST_INSTALL_PACKAGES`, which Play forbids ([Constraints](constraints.md)). Both are signed with the suite keystore, which serves as the Play upload key. The phone and TV `versionCode`s differ (TV + 1,000,000,000), as Play requires for two bundles of one app.
 - **Listing.** `shared/play-listing/metadata/android/` in the layout Play upload tools read (fastlane `supply`): title, short and full description in English (`en-US`) and Hindi (`hi-IN`); the 512 × 512 icon, the 1024 × 500 feature graphic, the 1280 × 720 TV banner; two phone screenshots (1080 × 2160) and three TV screenshots (1920 × 1080), taken from the emulators.
-- **Privacy policy.** [`PRIVACY.md`](../PRIVACY.md), public at https://github.com/kumarsumit17/ks-jaiplayer/blob/main/PRIVACY.md.
+- **Privacy policy.** [`PRIVACY.md`](../PRIVACY.md), public at https://github.com/kumasumit/ks-jaiplayer/blob/main/PRIVACY.md.
 
 ## Answers for the Play Console
 | Question | Answer |

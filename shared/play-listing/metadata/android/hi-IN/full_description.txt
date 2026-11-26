@@ -8,4 +8,4 @@ KS JaiPlayer आपके फ़ोन और Google TV के वीडिय�
 • फ़ोन पर पिक्चर-इन-पिक्चर।
 • अंग्रेज़ी और हिंदी, आपके सिस्टम की भाषा या आपकी अपनी पसंद के हिसाब से।
 
-KS JaiPlayer, KS-Suite का हिस्सा है, जो मुफ़्त और प्राइवेट ऐप का एक सेट है। इसका सोर्स कोड MIT लाइसेंस के साथ GitHub पर है: https://github.com/kumarsumit17/ks-jaiplayer
+KS JaiPlayer, KS-Suite का हिस्सा है, जो मुफ़्त और प्राइवेट ऐप का एक सेट है। इसका सोर्स कोड MIT लाइसेंस के साथ GitHub पर है: https://github.com/kumasumit/ks-jaiplayer

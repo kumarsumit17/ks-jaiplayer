@@ -1,5 +1,6 @@
 # 2026-11-26
 
+* **Update**: the GitHub owner is now `kumasumit` (renamed from `kumarsumit17` by the owner). The update checker, the release workflow (ks-utility's shared workflow), the submodule link and every document point at it. Copies up to v1.6.0 only accept downloads under the old name, so they cannot update themselves to the next release: people download it once by hand, after which in-app updates work again.
 * **Update**: [Per-platform optimization plan](plan-per-platform.md): platform tags again (owner's rule, KS-Suite d373527): `android-v`, `google-tv-v`, `mac-v`, `windows-v`, with a plain `vX.Y.Z` releasing every platform. 0368fb6 reverted. v1.6.0 already reads the release list, so it is the bridge release.
 
 # 2026-11-25
@@ -16,7 +17,7 @@
 * **Update**: [Bundled libVLC](plan-bundled-vlc-and-plugins.md): libVLC's plugin cache is written into the finished app, so the first start after install takes about 1 s instead of over a minute.
 * **Creation**: [Per-platform optimization plan](plan-per-platform.md) added: an audit of each build and a per-platform plan (look and input, startup, hardware decoding, packaging, media sessions and OS integrations, accessibility) with an own version per platform; approved by the owner with one tag per platform (`mac-v`, `windows-v`, `android-v`, `google-tv-v`).
 * **Update**: [Constraints](constraints.md), [Third-party licences](licences.md) and [Bundled libVLC](plan-bundled-vlc-and-plugins.md): the desktop app plays only through its bundled libVLC and no longer looks for an installed VLC (owner's decision). `JAIPLAYER_VLC_PATH` stays for diagnosis; `-PnoBundledVlc` is gone.
-* **Update**: `ks-utility` moved from `v0.7.0` to `v0.9.0` (more languages, the translation tools; [ks-utility translation tools](https://github.com/kumarsumit17/ks-utility/blob/main/specs/translating.md)).
+* **Update**: `ks-utility` moved from `v0.7.0` to `v0.9.0` (more languages, the translation tools; [ks-utility translation tools](https://github.com/kumasumit/ks-utility/blob/main/specs/translating.md)).
 * **Creation**: [Smooth playback](smoothness.md) added: desktop frames as YUV planes converted on the GPU through three rotating buffers (no copies, no shared waiting), coalesced seeks with live scrubbing, playback speed 0.25×–4× with a fine 0.05× control, the `JAIPLAYER_PERF` measurements and a speed test.
 * **Update**: [Bundled libVLC and third-party plugins](plan-bundled-vlc-and-plugins.md): section 1 built (owner chose option a). The desktop installers carry libVLC 3.0.24 with only its LGPL plugins, selected from each plugin's declared licence plus a list of plugins that link GPL libraries; `COPYING.LIB` and `PLUGINS.txt` ship with it. Section 2 still awaits the owner.
 * **Update**: [Constraints](constraints.md) and [Third-party licences](licences.md): desktop no longer needs VLC installed; the loader tries `JAIPLAYER_VLC_PATH`, an installed VLC, then the bundled copy.

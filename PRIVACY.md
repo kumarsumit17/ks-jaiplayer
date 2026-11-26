@@ -21,4 +21,4 @@ The app does not knowingly collect anything from anyone, children included.
 Changes to this policy are published in this file, with a new date.
 
 ## Contact
-Open an issue at https://github.com/kumarsumit17/ks-jaiplayer/issues
+Open an issue at https://github.com/kumasumit/ks-jaiplayer/issues

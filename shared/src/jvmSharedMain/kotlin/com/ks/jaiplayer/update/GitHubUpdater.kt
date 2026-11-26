@@ -191,7 +191,7 @@ class GitHubUpdater(
     }
 
     companion object {
-        const val REPO = "kumarsumit17/ks-jaiplayer"
+        const val REPO = "kumasumit/ks-jaiplayer"
         private const val AUTO_KEY = "update.auto"
         private const val LAST_CHECK_KEY = "update.lastCheck"
     }

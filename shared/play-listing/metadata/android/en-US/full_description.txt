@@ -8,4 +8,4 @@ KS JaiPlayer is a free, open-source player for the videos and music on your phon
 • Picture-in-picture on phones.
 • English and Hindi, following your system language or your own choice.
 
-KS JaiPlayer is part of KS-Suite, a set of free, private apps. The source code is on GitHub under the MIT licence: https://github.com/kumarsumit17/ks-jaiplayer
+KS JaiPlayer is part of KS-Suite, a set of free, private apps. The source code is on GitHub under the MIT licence: https://github.com/kumasumit/ks-jaiplayer
