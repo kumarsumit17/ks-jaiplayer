@@ -28,6 +28,7 @@ import org.jetbrains.compose.resources.stringResource
  */
 class TracksPlugin : JaiPlugin {
     override val id = "tracks"
+    override val name = "Subtitles and audio tracks"
 
     override fun install(context: PluginContext) {
         val engine = context.engine

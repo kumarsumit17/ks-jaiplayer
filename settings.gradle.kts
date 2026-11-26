@@ -21,4 +21,6 @@ includeBuild("ks-utility/kotlin")
 
 include(":shared")
 include(":desktop:mac", ":desktop:windows")
+// A sample third-party plugin for the desktop apps; never part of an installer.
+include(":desktop:plugin-sample")
 include(":mobile:android", ":tv:google-tv")

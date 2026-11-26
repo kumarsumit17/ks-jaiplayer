@@ -22,6 +22,7 @@ class ResumePlugin(
     private val onChanged: (List<ResumeEntry>) -> Unit = {},
 ) : JaiPlugin {
     override val id = "resume"
+    override val name = "Resume"
 
     override fun install(context: PluginContext) {
         val store = ResumePositions(context.settings)

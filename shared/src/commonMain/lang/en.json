@@ -63,5 +63,13 @@
   "menu.zoom": "Zoom",
   "menu.help": "Help",
   "menu.helpSite": "KS JaiPlayer on GitHub",
-  "player.timeOf": "{position} of {duration}"
+  "player.timeOf": "{position} of {duration}",
+  "settings.plugins": "Plugins",
+  "settings.pluginBuiltIn": "Built in",
+  "settings.pluginAdded": "Added: {file}",
+  "settings.pluginWrongVersion": "Made for another version of KS JaiPlayer",
+  "settings.pluginUnreadable": "This file is not a KS JaiPlayer plugin",
+  "settings.pluginWarning": "Added plugins run with all of the app's rights. Turn on only plugins you trust.",
+  "settings.pluginRestart": "Changes apply the next time KS JaiPlayer starts.",
+  "settings.pluginFolder": "Open folder"
 }

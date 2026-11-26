@@ -40,6 +40,7 @@ import com.ks.jaiplayer.ui.FormFactor
 import com.ks.jaiplayer.ui.JaiPlayerApp
 import com.ks.jaiplayer.ui.JaiPlayerState
 import com.ks.jaiplayer.ui.PlatformHost
+import com.ks.jaiplayer.ui.PluginManager
 import com.ks.jaiplayer.ui.ProvideLanguage
 import com.ks.jaiplayer.ui.Screen
 import com.ks.jaiplayer.vlc.VlcLocation
@@ -106,10 +107,12 @@ fun runDesktopApp(config: DesktopConfig) {
         val engine = remember { VlcPlayerEngine.create(config.vlcLocations, config.vlcArgs) }
         val windowState = rememberWindowState(size = DpSize(1120.dp, 720.dp))
         val windowRef = remember { arrayOfNulls<Frame>(1) }
-        val host = remember { DesktopHost(config.nativeFolderDialog) { windowRef[0] } }
         val settings = remember { PrefsSettingsStore() }
+        // Built-in plugins plus the jars added to the plugins folder (only those switched on load).
+        val pluginManager = remember { DesktopPlugins(settings, config.plugins) }
+        val host = remember { DesktopHost(config.nativeFolderDialog, pluginManager) { windowRef[0] } }
         val updater = remember { desktopUpdater(settings) { engine.release() } }
-        val app = remember { JaiPlayerState(engine, host, settings, config.systemLanguages, config.plugins, updater) }
+        val app = remember { JaiPlayerState(engine, host, settings, config.systemLanguages, pluginManager.active(), updater) }
 
         val quit = { config.integration?.stop(); engine.release(); exitApplication() }
         Window(
@@ -240,7 +243,11 @@ private fun MenuScope.PluginEntry(entry: MenuEntry, state: PluginScreenState) {
 }
 
 /** File dialogs and file checks for macOS and Windows. */
-private class DesktopHost(private val nativeFolderDialog: Boolean, private val window: () -> Frame?) : PlatformHost {
+private class DesktopHost(
+    private val nativeFolderDialog: Boolean,
+    override val plugins: PluginManager,
+    private val window: () -> Frame?,
+) : PlatformHost {
     override val formFactor = FormFactor.Desktop
 
     override fun pickMedia(onPicked: (MediaRef) -> Unit) {

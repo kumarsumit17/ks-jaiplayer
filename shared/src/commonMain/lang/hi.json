@@ -63,5 +63,13 @@
   "menu.zoom": "ज़ूम",
   "menu.help": "मदद",
   "menu.helpSite": "GitHub पर KS JaiPlayer",
-  "player.timeOf": "{duration} में से {position}"
+  "player.timeOf": "{duration} में से {position}",
+  "settings.plugins": "प्लगइन",
+  "settings.pluginBuiltIn": "ऐप में शामिल",
+  "settings.pluginAdded": "जोड़ा गया: {file}",
+  "settings.pluginWrongVersion": "KS JaiPlayer के दूसरे वर्ज़न के लिए बना है",
+  "settings.pluginUnreadable": "यह फ़ाइल KS JaiPlayer का प्लगइन नहीं है",
+  "settings.pluginWarning": "जोड़े गए प्लगइन ऐप के सभी अधिकारों के साथ चलते हैं। सिर्फ़ उन्हीं प्लगइन को चालू करें जिन पर आपको भरोसा है।",
+  "settings.pluginRestart": "बदलाव अगली बार KS JaiPlayer खुलने पर लागू होंगे।",
+  "settings.pluginFolder": "फ़ोल्डर खोलें"
 }

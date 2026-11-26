@@ -33,6 +33,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.ks.jaiplayer.resources.settings_this_device
+import com.ks.jaiplayer.resources.settings_plugin_folder
+import com.ks.jaiplayer.resources.settings_plugin_restart
+import com.ks.jaiplayer.resources.settings_plugin_warning
+import com.ks.jaiplayer.resources.settings_plugin_unreadable
+import com.ks.jaiplayer.resources.settings_plugin_wrong_version
+import com.ks.jaiplayer.resources.settings_plugin_added
+import com.ks.jaiplayer.resources.settings_plugin_built_in
+import com.ks.jaiplayer.resources.settings_plugins
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -72,6 +80,10 @@ fun SettingsDialog(app: JaiPlayerState) {
                     )
                     settings.forEach { DeviceSettingRow(it) }
                 }
+                app.host.plugins?.let { manager ->
+                    HorizontalDivider(Modifier.padding(vertical = 16.dp))
+                    PluginsSection(manager)
+                }
                 app.updates?.let {
                     HorizontalDivider(Modifier.padding(vertical = 16.dp))
                     UpdateSection(it)
@@ -103,5 +115,35 @@ private fun DeviceSettingRow(setting: DeviceSetting) {
         }
         Switch(checked = on, onCheckedChange = null)
     }
+}
+
+@Composable
+private fun PluginsSection(manager: PluginManager) {
+    Text(stringResource(Res.string.settings_plugins), style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(bottom = 8.dp))
+    manager.plugins.forEach { info ->
+        var on by remember(info.id) { mutableStateOf(manager.isOn(info.id)) }
+        val note = when {
+            info.problem == PluginProblem.WrongVersion -> stringResource(Res.string.settings_plugin_wrong_version)
+            info.problem == PluginProblem.Unreadable -> stringResource(Res.string.settings_plugin_unreadable)
+            info.file != null -> stringResource(Res.string.settings_plugin_added, info.file)
+            else -> stringResource(Res.string.settings_plugin_built_in)
+        }
+        val canSwitch = info.problem == null
+        Row(
+            Modifier.fillMaxWidth()
+                .toggleable(on, enabled = canSwitch, role = Role.Switch) { on = it; manager.set(info.id, it) }
+                .padding(vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f).padding(end = 12.dp)) {
+                Text(info.name)
+                Text(note, style = MaterialTheme.typography.bodySmall, color = if (info.problem != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Switch(checked = on && canSwitch, onCheckedChange = null, enabled = canSwitch)
+        }
+    }
+    Text(stringResource(Res.string.settings_plugin_warning), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 8.dp))
+    Text(stringResource(Res.string.settings_plugin_restart), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    TextButton(onClick = manager::openFolder) { Text(stringResource(Res.string.settings_plugin_folder)) }
 }
 

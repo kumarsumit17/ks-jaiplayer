@@ -7,7 +7,7 @@ tags: [plan, desktop, libvlc, plugins, licences]
 
 # Bundled libVLC and third-party plugins
 
-Status: section 1 **built** (2026-11-25, owner chose option a). Section 2 **approved as proposed** by the owner (2026-11-25); being built.
+Status: section 1 **built** (2026-11-25, owner chose option a). Section 2 **built** (2026-11-26, approved as proposed): see [Writing a desktop plugin](writing-plugins.md).
 
 ## 1. libVLC inside the desktop apps
 Today the Mac and Windows apps need VLC 3.x installed and find it at run time ([Constraints](constraints.md)). Bundling makes the app work right after install.

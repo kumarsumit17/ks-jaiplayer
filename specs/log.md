@@ -1,5 +1,6 @@
 # 2026-11-26
 
+* **Creation**: [Writing a desktop plugin](writing-plugins.md) added: third-party plugin jars for macOS and Windows (manifest-identified, off until turned on, versioned API 1), the Settings › Plugins section and the sample Loop plugin. [Plugins](plugins.md) and [Bundled libVLC and third-party plugins](plan-bundled-vlc-and-plugins.md) updated: section 2 built.
 * **Update**: [Per-platform optimization plan](plan-per-platform.md): step 7 (accessibility) built: subtitles drawn on Android in the system caption style (they were not shown before), the seek bar read as a time.
 * **Update**: [Per-platform optimization plan](plan-per-platform.md): step 6 (Windows) built: stay awake, single instance, file associations, jump list, dark title bar, `jdk.accessibility`.
 * **Update**: [Per-platform optimization plan](plan-per-platform.md): step 5 (macOS) partly built: Now Playing and media keys, display kept awake while playing, Window and Help menus.

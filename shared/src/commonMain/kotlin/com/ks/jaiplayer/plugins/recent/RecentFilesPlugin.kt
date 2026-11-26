@@ -50,6 +50,7 @@ import org.jetbrains.compose.resources.stringResource
 /** Built-in plugin: the last 20 files played, on the home screen and in File → Open recent. */
 class RecentFilesPlugin : JaiPlugin {
     override val id = "recent-files"
+    override val name = "Recent files"
 
     private var recent by mutableStateOf(emptyList<MediaRef>())
 

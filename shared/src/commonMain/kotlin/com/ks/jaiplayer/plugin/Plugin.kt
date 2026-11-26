@@ -22,9 +22,21 @@ interface JaiPlugin {
     /** Stable and unique, e.g. `recent-files`. Also names the plugin's own settings. */
     val id: String
 
+    /** The name shown in Settings › Plugins. */
+    val name: String get() = id
+
+    /**
+     * The plugin API this plugin was built for. A plugin added as a jar (desktop) whose version
+     * differs from [PLUGIN_API_VERSION] is not loaded; see specs/writing-plugins.md.
+     */
+    val apiVersion: Int get() = PLUGIN_API_VERSION
+
     /** Called once at start. Register everything the plugin adds here. */
     fun install(context: PluginContext)
 }
+
+/** The plugin API's version. It changes when [JaiPlugin] or [PluginContext] change incompatibly. */
+const val PLUGIN_API_VERSION = 1
 
 /** Where a plugin's control goes in the player's control bar. */
 enum class ControlSlot {

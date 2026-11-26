@@ -37,6 +37,9 @@ interface PlatformHost {
     /** The screen's brightness for the player (the phone's left-side swipe); null where it cannot be set. */
     val brightness: BrightnessControl? get() = null
 
+    /** The plugins and their switches (desktop, where plugins can be added as jars); null elsewhere. */
+    val plugins: PluginManager? get() = null
+
     /** Switches that only make sense on this platform, shown under "This device" in Settings. */
     val deviceSettings: List<DeviceSetting> get() = emptyList()
 }
@@ -46,6 +49,20 @@ interface BrightnessControl {
     fun current(): Float
     fun set(level: Float)
     fun reset()
+}
+
+/** One plugin as Settings shows it. [file] is the jar of an added plugin; [problem] why it cannot load. */
+class PluginInfo(val id: String, val name: String, val file: String?, val problem: PluginProblem?)
+
+enum class PluginProblem { WrongVersion, Unreadable }
+
+/** Lists the plugins and turns them on or off; changes apply the next time the app starts. */
+interface PluginManager {
+    val plugins: List<PluginInfo>
+    fun isOn(id: String): Boolean
+    fun set(id: String, on: Boolean)
+    /** Opens the folder added plugins go in. */
+    fun openFolder()
 }
 
 /** An on/off setting of one platform (frame-rate matching on TV, background audio on the phone). */
