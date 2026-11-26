@@ -57,5 +57,10 @@
   "settings.backgroundAudioHint": "ऐप छोड़ने या स्क्रीन बंद करने पर भी ऑडियो फ़ाइलें चलती रहती हैं।",
   "player.brightness": "ब्राइटनेस",
   "player.fillScreen": "स्क्रीन भरें",
-  "player.fitScreen": "स्क्रीन में फ़िट करें"
+  "player.fitScreen": "स्क्रीन में फ़िट करें",
+  "menu.window": "विंडो",
+  "menu.minimize": "छोटा करें",
+  "menu.zoom": "ज़ूम",
+  "menu.help": "मदद",
+  "menu.helpSite": "GitHub पर KS JaiPlayer"
 }

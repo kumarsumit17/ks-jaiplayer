@@ -25,6 +25,11 @@ import com.ks.jaiplayer.resources.menu_file
 import com.ks.jaiplayer.resources.menu_playback
 import com.ks.jaiplayer.resources.menu_quit
 import com.ks.jaiplayer.resources.menu_view
+import com.ks.jaiplayer.resources.menu_help_site
+import com.ks.jaiplayer.resources.menu_help
+import com.ks.jaiplayer.resources.menu_zoom
+import com.ks.jaiplayer.resources.menu_minimize
+import com.ks.jaiplayer.resources.menu_window
 import com.ks.jaiplayer.resources.player_close
 import com.ks.jaiplayer.resources.player_full_screen
 import com.ks.jaiplayer.resources.player_mute
@@ -81,6 +86,8 @@ class DesktopConfig(
     val nativeFolderDialog: Boolean = false,
     /** The features added to the minimal core; see specs/plugins.md. */
     val plugins: List<JaiPlugin> = builtInPlugins(),
+    /** This OS's Now Playing, media keys and stay-awake; null for none. */
+    val integration: DesktopIntegration? = null,
 )
 
 /**
@@ -104,13 +111,30 @@ fun runDesktopApp(config: DesktopConfig) {
         val updater = remember { desktopUpdater(settings) { engine.release() } }
         val app = remember { JaiPlayerState(engine, host, settings, config.systemLanguages, config.plugins, updater) }
 
-        val quit = { engine.release(); exitApplication() }
+        val quit = { config.integration?.stop(); engine.release(); exitApplication() }
         Window(
             onCloseRequest = quit,
             state = windowState,
             title = "KS JaiPlayer",
         ) {
             windowRef[0] = window
+            config.integration?.let { integration ->
+                LaunchedEffect(Unit) {
+                    integration.start { action ->
+                        when (action) {
+                            PlayerAction.NextItem -> app.next()
+                            PlayerAction.PreviousItem -> app.previous()
+                            else -> app.controller.perform(action)
+                        }
+                    }
+                    kotlinx.coroutines.flow.combine(engine.state, snapshotFlow { app.playlist }) { s, list ->
+                        val now = s.media?.let { m ->
+                            NowPlaying(m.title, s.durationMs, s.positionMs, s.isPlaying, s.speed, list?.hasNext == true, list?.hasPrevious == true)
+                        }
+                        now to s.hasVideo
+                    }.collect { (now, video) -> integration.update(now, video) }
+                }
+            }
             LaunchedEffect(Unit) { ExternalOpen.files.receiveAsFlow().collect { app.openAll(collectMedia(it).map(::mediaRefOf)) } }
             LaunchedEffect(app.fullScreen) {
                 windowState.placement = if (app.fullScreen) WindowPlacement.Fullscreen else WindowPlacement.Floating
@@ -177,8 +201,24 @@ private fun FrameWindowScope.AppMenuBar(app: JaiPlayerState, config: DesktopConf
                 shortcut = if (config.useMetaShortcuts) KeyShortcut(Key.F, meta = true, ctrl = true) else KeyShortcut(Key.F11),
                 onClick = { app.fullScreen = !app.fullScreen })
         }
+        // macOS convention: a Window menu (minimize, zoom) and a Help menu.
+        if (config.systemAppMenu) {
+            Menu(stringResource(Res.string.menu_window)) {
+                Item(stringResource(Res.string.menu_minimize), shortcut = shortcut(Key.M), onClick = { window.state = Frame.ICONIFIED })
+                Item(stringResource(Res.string.menu_zoom), onClick = {
+                    window.extendedState = if (window.extendedState and Frame.MAXIMIZED_BOTH != 0) Frame.NORMAL else Frame.MAXIMIZED_BOTH
+                })
+            }
+        }
+        Menu(stringResource(Res.string.menu_help)) {
+            Item(stringResource(Res.string.menu_help_site), onClick = {
+                runCatching { java.awt.Desktop.getDesktop().browse(java.net.URI(HELP_URL)) }
+            })
+        }
     }
 }
+
+private const val HELP_URL = "https://github.com/kumasumit/ks-jaiplayer"
 
 @Composable
 private fun MenuScope.PluginEntry(entry: MenuEntry, state: PluginScreenState) {

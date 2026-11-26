@@ -31,6 +31,7 @@ fun main(args: Array<String>) {
             systemAppMenu = true,
             useMetaShortcuts = true,
             nativeFolderDialog = true,
+            integration = MacIntegration(),
         ),
     )
 }

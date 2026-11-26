@@ -57,5 +57,10 @@
   "settings.backgroundAudioHint": "Audio files keep playing when you leave the app or turn off the screen.",
   "player.brightness": "Brightness",
   "player.fillScreen": "Fill the screen",
-  "player.fitScreen": "Fit to screen"
+  "player.fitScreen": "Fit to screen",
+  "menu.window": "Window",
+  "menu.minimize": "Minimize",
+  "menu.zoom": "Zoom",
+  "menu.help": "Help",
+  "menu.helpSite": "KS JaiPlayer on GitHub"
 }

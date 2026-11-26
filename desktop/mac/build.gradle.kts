@@ -13,6 +13,7 @@ dependencies {
     implementation(project(":shared"))
     implementation(compose.desktop.currentOs)
     implementation(libs.ks.utility)
+    implementation(libs.jna)
 }
 
 // libVLC and its LGPL plugins go into the installer (build/vlc-resources).

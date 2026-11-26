@@ -1,5 +1,6 @@
 # 2026-11-26
 
+* **Update**: [Per-platform optimization plan](plan-per-platform.md): step 5 (macOS) partly built: Now Playing and media keys, display kept awake while playing, Window and Help menus.
 * **Update**: [Per-platform optimization plan](plan-per-platform.md): step 4 (phone) built: background audio, touch gestures (seek, volume, brightness, fill/fit, 2× while held), video orientation, predictive back. [Google Play](google-play.md): the media-playback foreground service declaration.
 * **Update**: the GitHub owner is now `kumasumit` (renamed from `kumarsumit17` by the owner). The update checker, the release workflow (ks-utility's shared workflow), the submodule link and every document point at it. Copies up to v1.6.0 only accept downloads under the old name, so they cannot update themselves to the next release: people download it once by hand, after which in-app updates work again.
 * **Update**: [Per-platform optimization plan](plan-per-platform.md): platform tags again (owner's rule, KS-Suite d373527): `android-v`, `google-tv-v`, `mac-v`, `windows-v`, with a plain `vX.Y.Z` releasing every platform. 0368fb6 reverted. v1.6.0 already reads the release list, so it is the bridge release.
