@@ -12,12 +12,15 @@ fun main(args: Array<String>) {
     val files = args.map(::File).filter { it.exists() }
     // A second launch passes its files to the running window and ends here.
     if (!SingleInstance.claim(files)) return
+    // Swing parts (dialogs, the fallback folder chooser) take the Windows look.
+    runCatching { javax.swing.UIManager.setLookAndFeel(javax.swing.UIManager.getSystemLookAndFeelClassName()) }
     runDesktopApp(
         DesktopConfig(
             vlcLocations = vlcLocations(),
             systemLanguages = listOf(Locale.getDefault().toLanguageTag()),
             initialFiles = files,
             integration = WindowsIntegration(),
+            folderPicker = FolderPicker::pick,
         ),
     )
 }

@@ -1,5 +1,6 @@
 # 2026-11-26
 
+* **Update**: [Per-platform optimization plan](plan-per-platform.md): Windows folder picker (`IFileOpenDialog`) and system look for dialogs; taskbar thumbnail buttons left out (too risky without a Windows machine; the media overlay covers them).
 * **Update**: [Per-platform optimization plan](plan-per-platform.md): macOS items built: VideoToolbox for files without subtitles (4K HEVC about 15 % CPU instead of 65 %), trackpad seeking and wheel volume, transparent title bar, Dock menu; start-up measured, AppCDS left for later.
 * **Update**: [Per-platform optimization plan](plan-per-platform.md): Windows System Media Transport Controls built (media overlay, media keys, lock screen; title, state, timeline, buttons), through WinRT COM and JNA; not yet run on Windows.
 * **Update**: [Per-platform optimization plan](plan-per-platform.md): TV rechecks done (50, 85 and 100 inch play, pause and resume, no crashes); step 2 complete.

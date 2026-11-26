@@ -92,6 +92,11 @@ class DesktopConfig(
     val nativeFolderDialog: Boolean = false,
     /** The features added to the minimal core; see specs/plugins.md. */
     val plugins: List<JaiPlugin> = builtInPlugins(),
+    /**
+     * Windows: the system's folder picker, run off the window's thread: it gets the owner window,
+     * a fallback chooser for when it is unavailable, and where to send the folder (null: cancelled).
+     */
+    val folderPicker: ((Frame?, () -> File?, (File?) -> Unit) -> Unit)? = null,
     /** macOS: the content runs under a transparent title bar, as in QuickTime. */
     val transparentTitleBar: Boolean = false,
     /** This OS's Now Playing, media keys and stay-awake; null for none. */
@@ -118,7 +123,7 @@ fun runDesktopApp(config: DesktopConfig) {
         val settings = remember { PrefsSettingsStore() }
         // Built-in plugins plus the jars added to the plugins folder (only those switched on load).
         val pluginManager = remember { DesktopPlugins(settings, config.plugins) }
-        val host = remember { DesktopHost(config.nativeFolderDialog, pluginManager, if (config.transparentTitleBar) MAC_TITLE_BAR_DP else 0) { windowRef[0] } }
+        val host = remember { DesktopHost(config.nativeFolderDialog, config.folderPicker, pluginManager, if (config.transparentTitleBar) MAC_TITLE_BAR_DP else 0) { windowRef[0] } }
         val updater = remember { desktopUpdater(settings) { engine.release() } }
         val app = remember { JaiPlayerState(engine, host, settings, config.systemLanguages, pluginManager.active(), updater) }
 
@@ -278,6 +283,7 @@ private fun MenuScope.PluginEntry(entry: MenuEntry, state: PluginScreenState) {
 /** File dialogs and file checks for macOS and Windows. */
 private class DesktopHost(
     private val nativeFolderDialog: Boolean,
+    private val folderPicker: ((Frame?, () -> File?, (File?) -> Unit) -> Unit)?,
     override val plugins: PluginManager,
     override val titleBarInsetDp: Int,
     private val window: () -> Frame?,
@@ -293,9 +299,12 @@ private class DesktopHost(
     }
 
     override fun pickFolder(onPicked: (List<MediaRef>) -> Unit) {
-        val folder = chooseFolder() ?: return
-        val files = collectMedia(listOf(folder))
-        if (files.isNotEmpty()) onPicked(files.map(::mediaRefOf))
+        fun open(folder: File?) {
+            val files = collectMedia(listOfNotNull(folder))
+            if (files.isNotEmpty()) onPicked(files.map(::mediaRefOf))
+        }
+        val picker = folderPicker
+        if (picker != null) picker(window(), ::chooseFolder, ::open) else open(chooseFolder())
     }
 
     private fun chooseFolder(): File? {
