@@ -25,7 +25,7 @@ class MacIntegration : DesktopIntegration {
     private val objc by lazy { runCatching { ObjC() }.getOrNull() }
     private var lastInfo: NowPlaying? = null
 
-    override fun start(perform: (PlayerAction) -> Unit) {
+    override fun start(window: java.awt.Window, perform: (PlayerAction) -> Unit) {
         this.perform = perform
         runCatching { objc?.registerCommands(::onCommand) }
     }

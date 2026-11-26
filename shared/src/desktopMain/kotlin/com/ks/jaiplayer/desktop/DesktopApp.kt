@@ -120,7 +120,7 @@ fun runDesktopApp(config: DesktopConfig) {
             windowRef[0] = window
             config.integration?.let { integration ->
                 LaunchedEffect(Unit) {
-                    integration.start { action ->
+                    integration.start(window) { action ->
                         when (action) {
                             PlayerAction.NextItem -> app.next()
                             PlayerAction.PreviousItem -> app.previous()
@@ -129,13 +129,20 @@ fun runDesktopApp(config: DesktopConfig) {
                     }
                     kotlinx.coroutines.flow.combine(engine.state, snapshotFlow { app.playlist }) { s, list ->
                         val now = s.media?.let { m ->
-                            NowPlaying(m.title, s.durationMs, s.positionMs, s.isPlaying, s.speed, list?.hasNext == true, list?.hasPrevious == true)
+                            NowPlaying(m.uri, m.title, s.durationMs, s.positionMs, s.isPlaying, s.speed, list?.hasNext == true, list?.hasPrevious == true)
                         }
                         now to s.hasVideo
                     }.collect { (now, video) -> integration.update(now, video) }
                 }
             }
-            LaunchedEffect(Unit) { ExternalOpen.files.receiveAsFlow().collect { app.openAll(collectMedia(it).map(::mediaRefOf)) } }
+            LaunchedEffect(Unit) {
+                ExternalOpen.files.receiveAsFlow().collect {
+                    app.openAll(collectMedia(it).map(::mediaRefOf))
+                    // Opened from outside (Finder, Explorer, a second launch): bring the window forward.
+                    if (window.state == Frame.ICONIFIED) window.state = Frame.NORMAL
+                    window.toFront()
+                }
+            }
             LaunchedEffect(app.fullScreen) {
                 windowState.placement = if (app.fullScreen) WindowPlacement.Fullscreen else WindowPlacement.Floating
             }

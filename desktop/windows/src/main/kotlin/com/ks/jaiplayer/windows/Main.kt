@@ -9,11 +9,15 @@ import java.util.Locale
 
 /** Windows entry point: the file to play comes as a command-line argument ("Open with"). */
 fun main(args: Array<String>) {
+    val files = args.map(::File).filter { it.exists() }
+    // A second launch passes its files to the running window and ends here.
+    if (!SingleInstance.claim(files)) return
     runDesktopApp(
         DesktopConfig(
             vlcLocations = vlcLocations(),
             systemLanguages = listOf(Locale.getDefault().toLanguageTag()),
-            initialFiles = args.map(::File).filter { it.exists() },
+            initialFiles = files,
+            integration = WindowsIntegration(),
         ),
     )
 }

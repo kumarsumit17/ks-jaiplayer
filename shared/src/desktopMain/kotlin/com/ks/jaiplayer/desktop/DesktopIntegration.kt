@@ -4,6 +4,8 @@ import com.ks.jaiplayer.player.PlayerAction
 
 /** What the desktop OS is told about playback (the system's Now Playing, media keys, sleep). */
 data class NowPlaying(
+    /** The file or link being played (`file:` URIs go to the Windows jump list). */
+    val uri: String?,
     val title: String?,
     val durationMs: Long,
     val positionMs: Long,
@@ -20,8 +22,8 @@ data class NowPlaying(
  * simply does nothing).
  */
 interface DesktopIntegration {
-    /** Called once at start; [perform] runs a player action on the window's thread. */
-    fun start(perform: (PlayerAction) -> Unit)
+    /** Called once the [window] is shown; [perform] runs a player action on the window's thread. */
+    fun start(window: java.awt.Window, perform: (PlayerAction) -> Unit)
 
     /** The playback now; [nowPlaying] is null when nothing is open. */
     fun update(nowPlaying: NowPlaying?, hasVideo: Boolean)
