@@ -11,6 +11,9 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -18,6 +21,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.media3.common.Player
 import androidx.media3.common.VideoSize
+import androidx.media3.common.text.Cue
+import androidx.media3.common.text.CueGroup
 import androidx.media3.ui.compose.PlayerSurface
 import androidx.media3.ui.compose.SURFACE_TYPE_SURFACE_VIEW
 import com.ks.jaiplayer.android.ExoPlayerEngine
@@ -29,6 +34,7 @@ import java.util.Locale
 actual fun VideoSurface(engine: PlayerEngine, modifier: Modifier, fill: Boolean) {
     val player = (engine as? ExoPlayerEngine)?.player ?: return
     var aspect by remember { mutableFloatStateOf(0f) }
+    var cues by remember { mutableStateOf(emptyList<Cue>()) }
     DisposableEffect(player) {
         val listener = object : Player.Listener {
             override fun onVideoSizeChanged(videoSize: VideoSize) {
@@ -36,13 +42,17 @@ actual fun VideoSurface(engine: PlayerEngine, modifier: Modifier, fill: Boolean)
                     aspect = videoSize.width * videoSize.pixelWidthHeightRatio / videoSize.height
                 }
             }
+
+            override fun onCues(cueGroup: CueGroup) {
+                cues = cueGroup.cues
+            }
         }
         player.addListener(listener)
         onDispose { player.removeListener(listener) }
     }
     BoxWithConstraints(modifier.clipToBounds(), contentAlignment = Alignment.Center) {
         val surface = when {
-            aspect <= 0f -> Modifier
+            aspect <= 0f -> Modifier.fillMaxSize()
             // Fill: the side that is too short is stretched to the edge, the other overflows and is cut.
             fill -> {
                 val boxAspect = maxWidth / maxHeight
@@ -51,7 +61,10 @@ actual fun VideoSurface(engine: PlayerEngine, modifier: Modifier, fill: Boolean)
             }
             else -> Modifier.aspectRatio(aspect)
         }
-        PlayerSurface(player = player, surfaceType = SURFACE_TYPE_SURFACE_VIEW, modifier = surface)
+        Box(surface, contentAlignment = Alignment.Center) {
+            PlayerSurface(player = player, surfaceType = SURFACE_TYPE_SURFACE_VIEW, modifier = Modifier.matchParentSize())
+            Subtitles(cues)
+        }
     }
 }
 

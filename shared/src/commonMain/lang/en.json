@@ -62,5 +62,6 @@
   "menu.minimize": "Minimize",
   "menu.zoom": "Zoom",
   "menu.help": "Help",
-  "menu.helpSite": "KS JaiPlayer on GitHub"
+  "menu.helpSite": "KS JaiPlayer on GitHub",
+  "player.timeOf": "{position} of {duration}"
 }

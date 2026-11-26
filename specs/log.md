@@ -1,5 +1,6 @@
 # 2026-11-26
 
+* **Update**: [Per-platform optimization plan](plan-per-platform.md): step 7 (accessibility) built: subtitles drawn on Android in the system caption style (they were not shown before), the seek bar read as a time.
 * **Update**: [Per-platform optimization plan](plan-per-platform.md): step 6 (Windows) built: stay awake, single instance, file associations, jump list, dark title bar, `jdk.accessibility`.
 * **Update**: [Per-platform optimization plan](plan-per-platform.md): step 5 (macOS) partly built: Now Playing and media keys, display kept awake while playing, Window and Help menus.
 * **Update**: [Per-platform optimization plan](plan-per-platform.md): step 4 (phone) built: background audio, touch gestures (seek, volume, brightness, fill/fit, 2× while held), video orientation, predictive back. [Google Play](google-play.md): the media-playback foreground service declaration.

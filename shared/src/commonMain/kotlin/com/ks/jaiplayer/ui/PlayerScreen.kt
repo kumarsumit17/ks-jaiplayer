@@ -55,6 +55,7 @@ import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.material3.HorizontalDivider
@@ -70,6 +71,7 @@ import com.ks.jaiplayer.player.PlayerError
 import com.ks.jaiplayer.player.formatPlaybackTime
 import com.ks.jaiplayer.resources.Res
 import com.ks.jaiplayer.resources.common_pause
+import com.ks.jaiplayer.resources.player_time_of
 import com.ks.jaiplayer.resources.player_fit_screen
 import com.ks.jaiplayer.resources.player_fill_screen
 import com.ks.jaiplayer.resources.player_brightness
@@ -438,6 +440,7 @@ private fun SeekBar(state: PlaybackState, controller: PlayerController, focus: F
     val duration = state.durationMs.coerceAtLeast(1)
     val fraction = dragging ?: (state.positionMs.toFloat() / duration).coerceIn(0f, 1f)
     val shownMs = dragging?.let { (it * duration).toLong() } ?: state.positionMs
+    val timeOf = stringResource(Res.string.player_time_of, formatPlaybackTime(shownMs), formatPlaybackTime(state.durationMs))
     Row(verticalAlignment = Alignment.CenterVertically) {
         TimeText(formatPlaybackTime(shownMs))
         Slider(
@@ -453,6 +456,8 @@ private fun SeekBar(state: PlaybackState, controller: PlayerController, focus: F
             enabled = state.canSeek,
             colors = SliderDefaults.colors(inactiveTrackColor = Color.White.copy(alpha = 0.25f)),
             modifier = Modifier.weight(1f).padding(horizontal = 12.dp).focusRequester(focus).desktopNoFocus().tvFocusRing(RoundedCornerShape(12.dp))
+                // Screen readers say the time ("1:23 of 40:00"), not a percentage.
+                .semantics { stateDescription = timeOf }
                 .onPreviewKeyEvent { e -> if (form == FormFactor.Tv) tvSeekBarKey(e, controller, focusManager) else false },
         )
         TimeText(formatPlaybackTime(state.durationMs))
