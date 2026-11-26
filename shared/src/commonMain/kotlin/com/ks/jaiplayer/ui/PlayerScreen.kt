@@ -293,7 +293,8 @@ fun PlayerScreen(app: JaiPlayerState) {
         // Reduce Motion (a system setting): the controls appear and go without fading.
         val reduce = app.host.reduceMotion
         AnimatedVisibility(
-            controlsShown,
+            // In a picture-in-picture window the system draws the buttons; the app's would be tiny.
+            controlsShown && !app.host.inPictureInPicture,
             enter = if (reduce) EnterTransition.None else fadeIn(),
             exit = if (reduce) ExitTransition.None else fadeOut(),
             modifier = Modifier.fillMaxSize().onFocusChanged { controlFocused = it.hasFocus },

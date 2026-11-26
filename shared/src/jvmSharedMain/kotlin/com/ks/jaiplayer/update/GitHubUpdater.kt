@@ -119,10 +119,7 @@ class GitHubUpdater(
             repo.requestHeaders.forEach { (k, v) -> connection.setRequestProperty(k, v) }
             val code = connection.responseCode
             if (code != 200) throw IOException("HTTP $code")
-            return connection.inputStream.use { input ->
-                val bytes = input.readNBytes(AppUpdate.MAX_RESPONSE_BYTES)
-                bytes.decodeToString()
-            }
+            return connection.inputStream.use { input -> readAtMost(input, AppUpdate.MAX_RESPONSE_BYTES).decodeToString() }
         } finally {
             connection.disconnect()
         }
@@ -195,4 +192,19 @@ class GitHubUpdater(
         private const val AUTO_KEY = "update.auto"
         private const val LAST_CHECK_KEY = "update.lastCheck"
     }
+}
+
+/**
+ * Up to [max] bytes of [input]. `InputStream.readNBytes` would do this, but Android has it only
+ * from Android 13, and this code runs on Android 8 and later too.
+ */
+internal fun readAtMost(input: java.io.InputStream, max: Int): ByteArray {
+    val out = java.io.ByteArrayOutputStream()
+    val buffer = ByteArray(8 * 1024)
+    while (out.size() < max) {
+        val n = input.read(buffer, 0, minOf(buffer.size, max - out.size()))
+        if (n < 0) break
+        out.write(buffer, 0, n)
+    }
+    return out.toByteArray()
 }

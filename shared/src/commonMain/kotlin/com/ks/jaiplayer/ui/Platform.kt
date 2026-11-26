@@ -34,6 +34,9 @@ interface PlatformHost {
     /** The device's media library, browsed in the app instead of a picker (the Google TV app); null elsewhere. */
     val library: MediaLibrary? get() = null
 
+    /** True while the video plays in a picture-in-picture window (phone): the app's own controls hide. */
+    val inPictureInPicture: Boolean get() = false
+
     /** The system's Reduce Motion (or animations off) setting: the interface then avoids fades. */
     val reduceMotion: Boolean get() = false
 

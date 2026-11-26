@@ -55,6 +55,18 @@ class MainActivity : ComponentActivity() {
     private lateinit var pipActions: PipActions
     /** Whether picture-in-picture may start by itself now (Android 12+); kept for refreshes. */
     private var pipAutoEnter = false
+    /** Picture-in-picture now; Compose state, so the player's controls follow it. */
+    private val inPip = androidx.compose.runtime.mutableStateOf(false)
+
+    /** The orientation the player wants (its picture's); not applied while in picture-in-picture. */
+    private var videoOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+
+    override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: android.content.res.Configuration) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        inPip.value = isInPictureInPictureMode
+        // A landscape lock kept in the small window would turn the whole home screen sideways.
+        requestedOrientation = if (isInPictureInPictureMode) ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED else videoOrientation
+    }
     /** Null in the Google Play build, which Play updates. */
     private var updater: GitHubUpdater? = null
     private var onMediaPicked: ((MediaRef) -> Unit)? = null
@@ -143,7 +155,10 @@ class MainActivity : ComponentActivity() {
                         w >= h -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
                         else -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT
                     }
-                }.distinctUntilChanged().collect { requestedOrientation = it }
+                }.distinctUntilChanged().collect {
+                    videoOrientation = it
+                    if (!isInPictureInPictureMode) requestedOrientation = it
+                }
             }
             LaunchedEffect(Unit) { snapshotFlow { app.playlist }.collect { session.playlistChanged() } }
             // Phone, Android 12+: swiping home while a video plays moves it to picture-in-picture
@@ -255,6 +270,8 @@ class MainActivity : ComponentActivity() {
 
     private fun host(form: FormFactor) = object : PlatformHost {
         override val formFactor = form
+
+        override val inPictureInPicture: Boolean get() = inPip.value
 
         // "Remove animations" in Android's accessibility settings sets the animator scale to 0.
         override val reduceMotion: Boolean

@@ -28,11 +28,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.Alignment
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.material3.Surface
 import androidx.compose.foundation.verticalScroll
@@ -83,11 +87,17 @@ fun ControlMenu(
     }
 }
 
+/** Places a popup against the window's right edge, top to bottom, wherever its button is. */
+private object RightEdge : PopupPositionProvider {
+    override fun calculatePosition(anchorBounds: IntRect, windowSize: IntSize, layoutDirection: LayoutDirection, popupContentSize: IntSize) =
+        IntOffset(windowSize.width - popupContentSize.width, 0)
+}
+
 @Composable
 private fun SidePanel(label: String, onClose: () -> Unit, content: @Composable () -> Unit) {
     val focus = remember { FocusRequester() }
     Popup(
-        alignment = Alignment.CenterEnd,
+        popupPositionProvider = RightEdge,
         onDismissRequest = onClose,
         properties = PopupProperties(focusable = true),
     ) {
