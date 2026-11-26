@@ -32,3 +32,6 @@ tags: [google-play, release, android, google-tv, listing]
 ## To do, not blocking releases
 - The Play Console steps above.
 - Hand checks of the Play bundles once Play has processed them (pre-launch report).
+
+## Foreground service (from the release after v1.6.0)
+The phone app plays audio files in the background through a media-playback foreground service. In the Play Console's App content, declare the `FOREGROUND_SERVICE_MEDIA_PLAYBACK` permission: purpose "Media playback", with a short video of an audio file playing on with the screen off. The Google TV app declares it too, since the two share one manifest, but never starts it.

@@ -70,6 +70,9 @@ import com.ks.jaiplayer.player.PlayerError
 import com.ks.jaiplayer.player.formatPlaybackTime
 import com.ks.jaiplayer.resources.Res
 import com.ks.jaiplayer.resources.common_pause
+import com.ks.jaiplayer.resources.player_fit_screen
+import com.ks.jaiplayer.resources.player_fill_screen
+import com.ks.jaiplayer.resources.player_brightness
 import com.ks.jaiplayer.resources.error_cannot_open
 import com.ks.jaiplayer.resources.error_playback
 import com.ks.jaiplayer.resources.error_vlc_missing_title
@@ -116,6 +119,10 @@ fun PlayerScreen(app: JaiPlayerState) {
     var controlsShown by remember { mutableStateOf(true) }
     fun poke() { controlsShown = true; interaction++ }
     var menuOpen by remember { mutableStateOf(false) }
+    // Phone: pinch switches between fitting and filling the screen; gestures show a hint.
+    var fill by remember { mutableStateOf(false) }
+    var hint by remember { mutableStateOf<GestureHint?>(null) }
+    var fastSpeedBefore by remember { mutableStateOf<Float?>(null) }
     LaunchedEffect(interaction, state.isPlaying, menuOpen) {
         if (state.isPlaying && !menuOpen) {
             delay(HIDE_AFTER_MS)
@@ -187,8 +194,26 @@ fun PlayerScreen(app: JaiPlayerState) {
                     }
                 }
             }
+            .then(
+                if (form == FormFactor.Phone) Modifier.phoneGestures(
+                    state = { app.engine.state.value }, controller = controller, brightness = app.host.brightness,
+                    fill = { fill }, onFill = { fill = it }, onHint = { hint = it },
+                ) else Modifier,
+            )
             .pointerInput(form) {
                 detectTapGestures(
+                    // Phone: a long press plays at 2× until the finger lifts.
+                    onPress = {
+                        tryAwaitRelease()
+                        fastSpeedBefore?.let { app.engine.setSpeed(it); fastSpeedBefore = null; hint = null }
+                    },
+                    onLongPress = {
+                        if (form == FormFactor.Phone && app.engine.state.value.isPlaying && fastSpeedBefore == null) {
+                            fastSpeedBefore = app.engine.state.value.speed
+                            app.engine.setSpeed(2f)
+                            hint = GestureHint.Fast
+                        }
+                    },
                     onDoubleTap = { offset ->
                         when (form) {
                             FormFactor.Desktop -> app.fullScreen = !app.fullScreen
@@ -200,15 +225,33 @@ fun PlayerScreen(app: JaiPlayerState) {
                 )
             },
     ) {
-        VideoSurface(app.engine, Modifier.fillMaxSize())
+        VideoSurface(app.engine, Modifier.fillMaxSize(), fill = fill)
         if (!state.hasVideo && state.status != PlaybackStatus.Opening) AudioOnly(state)
         state.error?.let { ErrorBanner(it, state, Modifier.align(Alignment.Center)) }
+        hint?.let { GestureHintBadge(it, Modifier.align(Alignment.Center)) }
 
         AnimatedVisibility(controlsShown, enter = fadeIn(), exit = fadeOut(), modifier = Modifier.fillMaxSize()) {
             CompositionLocalProvider(LocalMenuOpen provides { open: Boolean -> menuOpen = open; poke() }) {
                 Controls(app, state, playFocus, seekFocus)
             }
         }
+    }
+}
+
+@Composable
+private fun GestureHintBadge(hint: GestureHint, modifier: Modifier) {
+    val text = when (hint) {
+        is GestureHint.Seek -> {
+            val sign = if (hint.deltaMs < 0) "−" else "+"
+            "${formatPlaybackTime(hint.targetMs)}   ($sign${formatPlaybackTime(kotlin.math.abs(hint.deltaMs))})"
+        }
+        is GestureHint.Volume -> "${stringResource(Res.string.player_volume)}  ${hint.level}"
+        is GestureHint.Brightness -> "${stringResource(Res.string.player_brightness)}  ${(hint.level * 100).toInt()}"
+        is GestureHint.Fill -> stringResource(if (hint.fill) Res.string.player_fill_screen else Res.string.player_fit_screen)
+        GestureHint.Fast -> "2×  ▶▶"
+    }
+    Surface(modifier, color = Color(0xCC1D2025), shape = RoundedCornerShape(12.dp)) {
+        Text(text, Modifier.padding(horizontal = 20.dp, vertical = 12.dp), color = Color.White, style = MaterialTheme.typography.titleMedium)
     }
 }
 

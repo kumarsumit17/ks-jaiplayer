@@ -1,7 +1,9 @@
 package com.ks.jaiplayer.ui
 
 import android.content.res.Configuration
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -24,7 +26,7 @@ import com.ks.jaiplayer.player.PlayerEngine
 import java.util.Locale
 
 @Composable
-actual fun VideoSurface(engine: PlayerEngine, modifier: Modifier) {
+actual fun VideoSurface(engine: PlayerEngine, modifier: Modifier, fill: Boolean) {
     val player = (engine as? ExoPlayerEngine)?.player ?: return
     var aspect by remember { mutableFloatStateOf(0f) }
     DisposableEffect(player) {
@@ -38,12 +40,18 @@ actual fun VideoSurface(engine: PlayerEngine, modifier: Modifier) {
         player.addListener(listener)
         onDispose { player.removeListener(listener) }
     }
-    Box(modifier, contentAlignment = Alignment.Center) {
-        PlayerSurface(
-            player = player,
-            surfaceType = SURFACE_TYPE_SURFACE_VIEW,
-            modifier = if (aspect > 0f) Modifier.aspectRatio(aspect) else Modifier,
-        )
+    BoxWithConstraints(modifier.clipToBounds(), contentAlignment = Alignment.Center) {
+        val surface = when {
+            aspect <= 0f -> Modifier
+            // Fill: the side that is too short is stretched to the edge, the other overflows and is cut.
+            fill -> {
+                val boxAspect = maxWidth / maxHeight
+                if (aspect > boxAspect) Modifier.requiredSize(maxHeight * aspect, maxHeight)
+                else Modifier.requiredSize(maxWidth, maxWidth / aspect)
+            }
+            else -> Modifier.aspectRatio(aspect)
+        }
+        PlayerSurface(player = player, surfaceType = SURFACE_TYPE_SURFACE_VIEW, modifier = surface)
     }
 }
 

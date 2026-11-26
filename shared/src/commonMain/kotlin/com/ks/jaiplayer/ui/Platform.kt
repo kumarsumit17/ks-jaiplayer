@@ -34,8 +34,18 @@ interface PlatformHost {
     /** The device's media library, browsed in the app instead of a picker (the Google TV app); null elsewhere. */
     val library: MediaLibrary? get() = null
 
+    /** The screen's brightness for the player (the phone's left-side swipe); null where it cannot be set. */
+    val brightness: BrightnessControl? get() = null
+
     /** Switches that only make sense on this platform, shown under "This device" in Settings. */
     val deviceSettings: List<DeviceSetting> get() = emptyList()
+}
+
+/** Sets the brightness of the app's window only, 0 to 1; [reset] gives it back to the system setting. */
+interface BrightnessControl {
+    fun current(): Float
+    fun set(level: Float)
+    fun reset()
 }
 
 /** An on/off setting of one platform (frame-rate matching on TV, background audio on the phone). */
@@ -46,9 +56,12 @@ class DeviceSetting(
     val set: (Boolean) -> Unit,
 )
 
-/** Draws the engine's picture. Each platform draws its own engine's frames. */
+/**
+ * Draws the engine's picture. Each platform draws its own engine's frames. With [fill] the
+ * picture covers the whole area and its edges are cut off; otherwise it fits inside.
+ */
 @Composable
-expect fun VideoSurface(engine: PlayerEngine, modifier: Modifier = Modifier)
+expect fun VideoSurface(engine: PlayerEngine, modifier: Modifier = Modifier, fill: Boolean = false)
 
 /** Lets files be dropped on the element (desktop); no effect where there is no drag and drop. */
 expect fun Modifier.mediaDropTarget(onDrop: (List<MediaRef>) -> Unit): Modifier

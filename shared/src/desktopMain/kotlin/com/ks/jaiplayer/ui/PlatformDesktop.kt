@@ -6,6 +6,7 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.composed
 import androidx.compose.ui.draganddrop.DragAndDropEvent
 import androidx.compose.ui.draganddrop.DragAndDropTarget
@@ -38,6 +39,7 @@ import org.jetbrains.skia.RuntimeEffect
 import java.io.File
 import java.net.URI
 import java.util.Locale
+import kotlin.math.max
 import kotlin.math.min
 
 private val sampling = FilterMipmap(FilterMode.LINEAR, MipmapMode.NONE)
@@ -67,10 +69,10 @@ private val yuvToRgb: RuntimeEffect by lazy {
 }
 
 @Composable
-actual fun VideoSurface(engine: PlayerEngine, modifier: Modifier) {
+actual fun VideoSurface(engine: PlayerEngine, modifier: Modifier, fill: Boolean) {
     val frames = (engine as? VlcPlayerEngine)?.frames ?: return
     val paint = remember { Paint() }
-    Canvas(modifier) {
+    Canvas(modifier.clipToBounds()) {
         frames.version.longValue // Read while drawing: a new frame redraws, without recomposing.
         val start = System.nanoTime()
         val frame = frames.frameToDraw() ?: return@Canvas
@@ -84,7 +86,7 @@ actual fun VideoSurface(engine: PlayerEngine, modifier: Modifier) {
             plane(base + l.uOffset, l.chromaWidth, l.chromaHeight, l.chromaPitch),
             plane(base + l.vOffset, l.chromaWidth, l.chromaHeight, l.chromaPitch),
         )
-        val scale = min(size.width / w, size.height / h)
+        val scale = if (fill) max(size.width / w, size.height / h) else min(size.width / w, size.height / h)
         val dw = w * scale
         val dh = h * scale
         val left = (size.width - dw) / 2

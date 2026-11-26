@@ -54,5 +54,8 @@
   "settings.matchFrameRate": "Match the video's frame rate",
   "settings.matchFrameRateHint": "The TV switches to the video's frame rate when it can do so without a blank screen.",
   "settings.backgroundAudio": "Keep audio playing in the background",
-  "settings.backgroundAudioHint": "Audio files keep playing when you leave the app or turn off the screen."
+  "settings.backgroundAudioHint": "Audio files keep playing when you leave the app or turn off the screen.",
+  "player.brightness": "Brightness",
+  "player.fillScreen": "Fill the screen",
+  "player.fitScreen": "Fit to screen"
 }

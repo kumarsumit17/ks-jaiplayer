@@ -2,6 +2,7 @@ package com.ks.jaiplayer.android
 
 import android.app.PictureInPictureParams
 import android.content.Intent
+import android.content.pm.ActivityInfo
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.os.Build
@@ -31,6 +32,7 @@ import com.ks.jaiplayer.resources.settings_match_frame_rate
 import com.ks.jaiplayer.resources.settings_match_frame_rate_hint
 import com.ks.jaiplayer.resources.settings_background_audio
 import com.ks.jaiplayer.resources.settings_background_audio_hint
+import com.ks.jaiplayer.ui.BrightnessControl
 import com.ks.jaiplayer.ui.FormFactor
 import com.ks.jaiplayer.ui.JaiPlayerApp
 import com.ks.jaiplayer.ui.JaiPlayerState
@@ -121,7 +123,22 @@ class MainActivity : ComponentActivity() {
         setContent {
             // Immersive full screen and screen kept on while a video plays.
             LaunchedEffect(Unit) {
-                snapshotFlow { app.screen == Screen.Player }.collect { inPlayer -> applyImmersive(inPlayer) }
+                snapshotFlow { app.screen == Screen.Player }.collect { inPlayer ->
+                    applyImmersive(inPlayer)
+                    if (!inPlayer) app.host.brightness?.reset()
+                }
+            }
+            // Phone: a video plays in the orientation of its picture (either way round, by the
+            // sensor); the rest of the app follows the phone.
+            if (form == FormFactor.Phone) LaunchedEffect(Unit) {
+                combine(snapshotFlow { app.screen == Screen.Player }, engine.state.map { engine.videoSize() }) { inPlayer, size ->
+                    val (w, h) = size
+                    when {
+                        !inPlayer || w <= 0 || h <= 0 -> ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+                        w >= h -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+                        else -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT
+                    }
+                }.distinctUntilChanged().collect { requestedOrientation = it }
             }
             LaunchedEffect(Unit) { snapshotFlow { app.playlist }.collect { session.playlistChanged() } }
             // Phone, Android 12+: swiping home while a video plays moves it to picture-in-picture
@@ -231,6 +248,13 @@ class MainActivity : ComponentActivity() {
 
     private fun host(form: FormFactor) = object : PlatformHost {
         override val formFactor = form
+
+        override val brightness: BrightnessControl? = if (form != FormFactor.Phone) null else object : BrightnessControl {
+            override fun current(): Float = window.attributes.screenBrightness.takeIf { it >= 0f }
+                ?: (android.provider.Settings.System.getInt(contentResolver, android.provider.Settings.System.SCREEN_BRIGHTNESS, 128) / 255f)
+            override fun set(level: Float) { window.attributes = window.attributes.apply { screenBrightness = level.coerceIn(0.01f, 1f) } }
+            override fun reset() { window.attributes = window.attributes.apply { screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE } }
+        }
 
         override val deviceSettings: List<DeviceSetting> = buildList {
             if (form == FormFactor.Phone) add(
