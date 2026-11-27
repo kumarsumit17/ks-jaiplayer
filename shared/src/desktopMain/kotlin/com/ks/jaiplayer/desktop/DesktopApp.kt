@@ -135,6 +135,16 @@ fun runDesktopApp(config: DesktopConfig) {
         ) {
             windowRef[0] = window
             LaunchedEffect(Unit) { com.ks.jaiplayer.vlc.FrameStats.mark("windowComposed") }
+            // Packaging only (desktop/AppCds.kt): show the home screen, then the player, then quit,
+            // so the classes a normal start uses are recorded for the AppCDS archive.
+            if (System.getenv("JAIPLAYER_CDS_TRAIN") == "1") LaunchedEffect(Unit) {
+                kotlinx.coroutines.delay(2_500)
+                app.open(MediaRef(File(System.getProperty("java.io.tmpdir"), "jaiplayer-cds-training.mp4").toURI().toString(), "training"))
+                kotlinx.coroutines.delay(2_500)
+                app.showSettings = true
+                kotlinx.coroutines.delay(1_500)
+                quit()
+            }
             if (config.transparentTitleBar) LaunchedEffect(Unit) {
                 window.rootPane.putClientProperty("apple.awt.fullWindowContent", true)
                 window.rootPane.putClientProperty("apple.awt.transparentTitleBar", true)

@@ -16,7 +16,8 @@ import java.net.URI
  * - the display stays awake while a video plays (`SetThreadExecutionState`);
  * - each opened file goes to the taskbar and Start jump list (`SHAddToRecentDocs`);
  * - the title bar is dark like the app (`DwmSetWindowAttribute`, Windows 10 1809 and later).
- * - the system media overlay and media keys ([MediaControls], SMTC).
+ * - the system media overlay and media keys ([MediaControls], SMTC);
+ * - previous, play/pause and next under the taskbar thumbnail ([ThumbBar]).
  * Every call is made on the window's thread, which lives as long as the app, as
  * `SetThreadExecutionState` requires. Anything that fails is skipped.
  */
@@ -24,6 +25,7 @@ class WindowsIntegration : DesktopIntegration {
     private var awake = false
     private var lastUri: String? = null
     private var media: MediaControls? = null
+    private var thumbBar: ThumbBar? = null
 
     override fun start(window: java.awt.Window, labels: com.ks.jaiplayer.desktop.IntegrationLabels, perform: (PlayerAction) -> Unit) {
         runCatching {
@@ -37,10 +39,16 @@ class WindowsIntegration : DesktopIntegration {
             val hwnd = Native.getWindowPointer(window) ?: return@runCatching
             media = MediaControls.create(hwnd) { action, _ -> javax.swing.SwingUtilities.invokeLater { perform(action) } }
         }
+        // Previous, play/pause and next under the taskbar thumbnail.
+        runCatching {
+            val hwnd = Native.getWindowPointer(window) ?: return@runCatching
+            thumbBar = ThumbBar.create(hwnd, labels) { perform(it) }
+        }
     }
 
     override fun update(nowPlaying: NowPlaying?, hasVideo: Boolean) {
         runCatching { media?.update(nowPlaying) }
+        runCatching { thumbBar?.update(nowPlaying) }
         val wantAwake = nowPlaying?.playing == true && hasVideo
         if (wantAwake != awake) {
             runCatching {

@@ -1,3 +1,7 @@
+# 2026-11-27
+
+* **Update**: [Per-platform optimization plan](plan-per-platform.md): macOS AppCDS archive made during packaging (warm start to first frame about 1.2–1.45 s instead of 2.0–2.2 s); Windows taskbar thumbnail buttons through observe-only thread hooks (not yet run on Windows).
+
 # 2026-11-26
 
 * **Update**: links to the KS-Suite repository and landing page now use `kumasumit/ks-suite` and `kumasumit.github.io/ks-suite` (renamed by the owner).

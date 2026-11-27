@@ -18,6 +18,8 @@ dependencies {
 
 // libVLC and its LGPL plugins go into the installer (build/vlc-resources).
 apply(from = rootProject.file("gradle/bundled-vlc.gradle.kts"))
+// The class archive that makes the app start faster (after the plugin cache).
+apply(from = rootProject.file("gradle/app-cds.gradle.kts"))
 
 // jpackage needs MAJOR >= 1; untagged development builds package as 1.0.0.
 val versionName = (rootProject.extra["appVersionName.mac"] as String).substringBefore('-')
