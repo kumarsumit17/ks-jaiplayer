@@ -16,8 +16,12 @@ permissions: {}
 jobs:
   bump:
     permissions: { contents: write, issues: write }
-    uses: kumasumit/ks-utility/.github/workflows/ks-utility-bump.yml@v0.15.0
+    uses: kumasumit/ks-utility/.github/workflows/ks-utility-bump.yml@v0.16.0
     with:
       kind: kotlin
       java: true
       test: ./gradlew :shared:desktopTest :shared:check
+    # With the owner's KS_WORKFLOWS_TOKEN the move also updates the @vX.Y.Z of ks-utility's shared
+    # workflows here; without it they stay, and ks-suite-check stops the release until moved by hand.
+    secrets:
+      KS_WORKFLOWS_TOKEN: ${{ secrets.KS_WORKFLOWS_TOKEN }}
