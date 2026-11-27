@@ -55,6 +55,8 @@
   "settings.matchFrameRateHint": "जब टीवी स्क्रीन काली किए बिना बदल सके, तब वह वीडियो के फ़्रेम रेट पर चलता है।",
   "settings.backgroundAudio": "बैकग्राउंड में ऑडियो चलता रहे",
   "settings.backgroundAudioHint": "ऐप छोड़ने या स्क्रीन बंद करने पर भी ऑडियो फ़ाइलें चलती रहती हैं।",
+  "settings.systemColours": "वॉलपेपर के रंग इस्तेमाल करें",
+  "settings.systemColoursHint": "प्लेयर के बाहर के मेन्यू और स्क्रीन आपके वॉलपेपर से रंग लेते हैं (Android 12 और उसके बाद)।",
   "player.brightness": "ब्राइटनेस",
   "player.fillScreen": "स्क्रीन भरें",
   "player.fitScreen": "स्क्रीन में फ़िट करें",

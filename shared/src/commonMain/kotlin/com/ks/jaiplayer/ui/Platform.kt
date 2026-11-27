@@ -49,6 +49,13 @@ interface PlatformHost {
     /** The plugins and their switches (desktop, where plugins can be added as jars); null elsewhere. */
     val plugins: PluginManager? get() = null
 
+    /**
+     * The system's colour scheme for the screens outside the player (Material You on the phone,
+     * Android 12+, while its switch is on); null keeps the app's own colours. Read during
+     * composition, so a snapshot state behind it re-themes the app when it changes.
+     */
+    val systemColors: androidx.compose.material3.ColorScheme? get() = null
+
     /** Switches that only make sense on this platform, shown under "This device" in Settings. */
     val deviceSettings: List<DeviceSetting> get() = emptyList()
 }

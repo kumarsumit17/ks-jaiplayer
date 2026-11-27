@@ -162,6 +162,10 @@ fun runDesktopApp(config: DesktopConfig) {
                         next = org.jetbrains.compose.resources.getString(Res.string.player_next),
                         previous = org.jetbrains.compose.resources.getString(Res.string.player_previous),
                     )
+                    // Pinch out on the trackpad goes full screen while a video plays; pinch in leaves it.
+                    integration.pinch(window) { zoomIn ->
+                        if (app.screen == Screen.Player && zoomIn != app.fullScreen) app.fullScreen = zoomIn
+                    }
                     integration.start(window, labels) { action ->
                         when (action) {
                             PlayerAction.NextItem -> app.next()

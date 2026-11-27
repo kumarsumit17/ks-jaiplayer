@@ -60,6 +60,11 @@ compose.desktop {
                 for ((ext, mime) in AUDIO_TYPES) fileAssociation(mime, ext, "Audio")
             }
         }
-        buildTypes.release.proguard { isEnabled.set(false) }
+        // Release builds are shrunk by ProGuard (unused library code removed; names kept).
+        buildTypes.release.proguard {
+            isEnabled.set(true)
+            obfuscate.set(false)
+            configurationFiles.from(rootProject.file("shared/proguard/desktop.pro"))
+        }
     }
 }

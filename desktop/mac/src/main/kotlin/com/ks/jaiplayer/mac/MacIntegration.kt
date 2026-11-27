@@ -31,6 +31,43 @@ class MacIntegration : DesktopIntegration {
         runCatching { dockMenu(labels) }
     }
 
+    /**
+     * Trackpad pinch through the JDK's macOS gesture support (`com.apple.eawt.event`, exported to
+     * the app with `--add-exports`; reached by reflection because the package is not public API).
+     * The magnification of one gesture adds up; past ±0.25 it counts once, and a pause of 300 ms
+     * starts a new gesture.
+     */
+    override fun pinch(window: java.awt.Window, onPinch: (zoomIn: Boolean) -> Unit) {
+        val root = (window as? javax.swing.RootPaneContainer)?.rootPane ?: return
+        runCatching {
+            val utilities = Class.forName("com.apple.eawt.event.GestureUtilities")
+            val gestureListener = Class.forName("com.apple.eawt.event.GestureListener")
+            val magnification = Class.forName("com.apple.eawt.event.MagnificationListener")
+            val getMagnification = Class.forName("com.apple.eawt.event.MagnificationEvent").getMethod("getMagnification")
+            var total = 0.0
+            var last = 0L
+            var done = false
+            lateinit var self: Any
+            self = java.lang.reflect.Proxy.newProxyInstance(magnification.classLoader, arrayOf(magnification)) { _, method, args ->
+                when (method.name) {
+                    "magnify" -> {
+                        val now = System.currentTimeMillis()
+                        if (now - last > PINCH_GAP_MS) { total = 0.0; done = false }
+                        last = now
+                        total += getMagnification.invoke(args!![0]) as Double
+                        if (!done && kotlin.math.abs(total) > PINCH_THRESHOLD) { done = true; onPinch(total > 0) }
+                        null
+                    }
+                    "equals" -> args!![0] === self
+                    "hashCode" -> System.identityHashCode(self)
+                    "toString" -> "JaiPlayer pinch"
+                    else -> null
+                }
+            }
+            utilities.getMethod("addGestureListenerTo", javax.swing.JComponent::class.java, gestureListener).invoke(null, root, self)
+        }.onFailure { System.err.println("KS JaiPlayer: trackpad pinch unavailable: $it") }
+    }
+
     private var dockItems: Triple<java.awt.MenuItem, java.awt.MenuItem, java.awt.MenuItem>? = null
 
     /** Right-click on the Dock icon: play or pause, next and previous episode. */
@@ -211,3 +248,6 @@ private class ObjC {
         const val HANDLER_SUCCESS = 0L
     }
 }
+
+private const val PINCH_THRESHOLD = 0.25
+private const val PINCH_GAP_MS = 300L

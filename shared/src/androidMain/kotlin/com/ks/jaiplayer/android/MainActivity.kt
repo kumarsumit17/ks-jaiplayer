@@ -33,6 +33,8 @@ import com.ks.jaiplayer.resources.settings_match_frame_rate_hint
 import com.ks.jaiplayer.resources.settings_background_audio
 import com.ks.jaiplayer.resources.settings_background_audio_hint
 import com.ks.jaiplayer.ui.BrightnessControl
+import com.ks.jaiplayer.resources.settings_system_colours
+import com.ks.jaiplayer.resources.settings_system_colours_hint
 import com.ks.jaiplayer.resources.settings_tunneling
 import com.ks.jaiplayer.resources.settings_tunneling_hint
 import com.ks.jaiplayer.ui.FormFactor
@@ -284,7 +286,17 @@ class MainActivity : ComponentActivity() {
             override fun reset() { window.attributes = window.attributes.apply { screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE } }
         }
 
+        override val systemColors: androidx.compose.material3.ColorScheme?
+            get() = if (dynamicColorsSupported(form) && systemColorsOn.value) androidx.compose.material3.dynamicDarkColorScheme(this@MainActivity) else null
+
         override val deviceSettings: List<DeviceSetting> = buildList {
+            if (dynamicColorsSupported(form)) add(
+                DeviceSetting(
+                    Res.string.settings_system_colours, Res.string.settings_system_colours_hint,
+                    isOn = { systemColorsOn.value },
+                    set = { setDeviceFlag(SYSTEM_COLOURS, it); systemColorsOn.value = it },
+                ),
+            )
             if (form == FormFactor.Phone) add(
                 DeviceSetting(
                     Res.string.settings_background_audio, Res.string.settings_background_audio_hint,
@@ -343,9 +355,16 @@ class MainActivity : ComponentActivity() {
 
     private fun backgroundAudioOn() = deviceFlag(BACKGROUND_AUDIO, default = true)
 
+    /** Material You: the phone app on Android 12+ (the TV keeps the app's own look). */
+    private fun dynamicColorsSupported(form: FormFactor) = form == FormFactor.Phone && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+
+    /** The "Use your wallpaper's colours" switch, as state so turning it re-themes the app at once. */
+    private val systemColorsOn by lazy { androidx.compose.runtime.mutableStateOf(deviceFlag(SYSTEM_COLOURS, default = true)) }
+
     private companion object {
         const val MATCH_FRAME_RATE = "matchFrameRate"
         const val BACKGROUND_AUDIO = "backgroundAudio"
+        const val SYSTEM_COLOURS = "systemColours"
         const val TUNNELING = "tunneling"
     }
 }

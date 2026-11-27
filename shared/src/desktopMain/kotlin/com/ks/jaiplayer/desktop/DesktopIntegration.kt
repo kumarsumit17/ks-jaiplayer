@@ -33,4 +33,10 @@ interface DesktopIntegration {
 
     /** Called when the app quits. */
     fun stop()
+
+    /**
+     * Trackpad pinch on the [window] (macOS): [onPinch] gets true for a pinch out and false for a
+     * pinch in, once per gesture, on the window's thread. Does nothing where pinches are not reported.
+     */
+    fun pinch(window: java.awt.Window, onPinch: (zoomIn: Boolean) -> Unit) {}
 }

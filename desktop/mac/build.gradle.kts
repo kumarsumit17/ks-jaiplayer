@@ -30,6 +30,8 @@ compose.desktop {
         jvmArgs += listOf("-Djaiplayer.version=${rootProject.extra["appVersionName.mac"]}")
         mainClass = "com.ks.jaiplayer.mac.MainKt"
         jvmArgs += listOf("-Dapple.awt.application.appearance=NSAppearanceNameDarkAqua")
+        // Trackpad pinch (MacIntegration.pinch) uses the JDK's macOS gesture classes.
+        jvmArgs += listOf("--add-exports=java.desktop/com.apple.eawt.event=ALL-UNNAMED")
         nativeDistributions {
             targetFormats(TargetFormat.Dmg)
             packageName = "KS JaiPlayer"
@@ -40,7 +42,7 @@ compose.desktop {
             modules("java.prefs", "java.desktop", "jdk.unsupported")
             macOS {
                 bundleID = "com.ks.jaiplayer"
-                // KS JaiPlayer's icon (a dark play mark on amber) on the macOS icon grid.
+                // KS JaiPlayer's icon (a blue tile with a ring and a play mark) on the macOS icon grid.
                 iconFile.set(project.file("packaging/icon.icns"))
                 appCategory = "public.app-category.video"
                 infoPlist {
@@ -48,6 +50,11 @@ compose.desktop {
                 }
             }
         }
-        buildTypes.release.proguard { isEnabled.set(false) }
+        // Release builds are shrunk by ProGuard (unused library code removed; names kept).
+        buildTypes.release.proguard {
+            isEnabled.set(true)
+            obfuscate.set(false)
+            configurationFiles.from(rootProject.file("shared/proguard/desktop.pro"))
+        }
     }
 }

@@ -20,7 +20,8 @@ fun JaiPlayerApp(app: JaiPlayerState) {
         }
     }
     ProvideLanguage(app.language) {
-        JaiTheme(app.host.formFactor) {
+        // The player keeps the app's own dark colours; other screens may follow the system's.
+        JaiTheme(app.host.formFactor, app.host.systemColors.takeIf { app.screen != Screen.Player }) {
             Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                 when (app.screen) {
                     Screen.Home -> HomeScreen(app)

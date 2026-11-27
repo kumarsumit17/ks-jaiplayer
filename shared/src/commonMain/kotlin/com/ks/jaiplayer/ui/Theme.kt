@@ -1,6 +1,7 @@
 package com.ks.jaiplayer.ui
 
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
@@ -31,10 +32,13 @@ fun metricsFor(form: FormFactor) = when (form) {
     FormFactor.Tv -> Metrics(32.dp, 56.dp, 20.dp, PaddingValues(horizontal = 48.dp, vertical = 27.dp), 1.4f)
 }
 
-/** KS JaiPlayer's colours: near-black so video stands out, with one warm accent. */
+/**
+ * KS JaiPlayer's colours: near-black so video stands out. [JaiTheme] takes the system's colours
+ * instead outside the player where the platform offers them (Material You on Android 12+).
+ */
 private val colors = darkColorScheme(
-    primary = Color(0xFFFFB648),
-    onPrimary = Color(0xFF2A1700),
+    primary = Color(0xFF5B95FF), // the icon's blue
+    onPrimary = Color(0xFF06163F),
     secondary = Color(0xFF9EC9FF),
     background = Color(0xFF0E0F12),
     onBackground = Color(0xFFECEDEF),
@@ -48,7 +52,7 @@ private val colors = darkColorScheme(
 )
 
 @Composable
-fun JaiTheme(form: FormFactor, content: @Composable () -> Unit) {
+fun JaiTheme(form: FormFactor, systemColors: ColorScheme? = null, content: @Composable () -> Unit) {
     val metrics = metricsFor(form)
     val density = LocalDensity.current
     CompositionLocalProvider(
@@ -56,6 +60,6 @@ fun JaiTheme(form: FormFactor, content: @Composable () -> Unit) {
         LocalFormFactor provides form,
         LocalDensity provides Density(density.density, density.fontScale * metrics.fontScale),
     ) {
-        MaterialTheme(colorScheme = colors, content = content)
+        MaterialTheme(colorScheme = systemColors ?: colors, content = content)
     }
 }
