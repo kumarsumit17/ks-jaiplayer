@@ -9,6 +9,8 @@ okf_version: "0.2"
 
 # Plans
 
+* [Progress](progress.md) - KS JaiPlayer's checkpoint: phase, work done, pending tasks, blockers and the exact next action.
+* [Audit against the suite standards](plan-standards.md) - KS JaiPlayer checked against KS-Suite's architecture, security and storage standards, with each item classified and the plan for the next release.
 * [Per-platform optimization plan](plan-per-platform.md) - Approved plan for making each build (macOS, Windows, Android phone, Google TV) its own app with its own version, tuned to its OS.
 * [Plan for the first milestone](plan-v1.md) - The playback engine on each platform, the shared player interface and UI, the first feature set, languages, packaging, build order and what is left for later.
 
@@ -29,3 +31,4 @@ okf_version: "0.2"
 * [Third-party licences](licences.md) - The licence of every playback engine and library KS JaiPlayer uses or considered, and whether it fits the app's MIT licence.
 * [Google Play](google-play.md) - What KS JaiPlayer needs on Google Play, what is ready in the repository, and the steps the owner does in the Play Console.
 * [Bundled libVLC and third-party plugins](plan-bundled-vlc-and-plugins.md) - Proposal, awaiting the owner's choice, for shipping libVLC inside the desktop apps and for letting people add their own plugins.
+* [DEV builds side by side](dev-variant.md) - How a DEV build of KS JaiPlayer (-PksVariant=dev) installs next to the production app on every platform without touching it.

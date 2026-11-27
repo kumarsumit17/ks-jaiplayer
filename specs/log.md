@@ -1,5 +1,7 @@
 # 2026-11-27
 
+* **Added**: [Progress](progress.md) and [Audit against the suite standards](plan-standards.md): class C confirmed, items classified, v1.11.3 size baseline, plan to the release pull request.
+* **Added**: [DEV builds side by side](dev-variant.md): `-PksVariant=dev` builds KS JaiPlayer DEV, with its own Android ID (`com.ks.jaiplayer.dev`), macOS bundle ID, Windows upgrade code, names, DEV-marked icons and banner, data folders and settings, no file types claimed and no updater, so it installs next to production and never touches it (KS-Suite "DEV and PROD side by side").
 * **Update**: on ks-utility v0.18.4; the release and bump workflows call ks-utility's shared workflows at `@main` (always its newest release), as KS-Suite's rule now asks.
 * **Update**: on ks-utility v0.16.0, with the shared workflows called at the same tag; the bump workflow passes `KS_WORKFLOWS_TOKEN` so a move also updates those refs.
 * **Update**: on ks-utility v0.15.0: the desktop update installer (Mac: open the dmg, say the app now closes, quit after 6 s) and its sentence now come from ks-utility's `appupdate`, replacing JaiPlayer's own copy; the release workflow runs ks-utility's `ks-suite-check`; `.github/workflows/ks-utility-bump.yml` moves to each new ks-utility tag the day it is released (tests first, then a push to dev).
