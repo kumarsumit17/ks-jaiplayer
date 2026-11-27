@@ -2,6 +2,8 @@ pluginManagement {
     repositories {
         google()
         mavenCentral()
+        // Google's copy of Maven Central, used when Central refuses a CI runner (rate limits).
+        maven("https://maven-central.storage-download.googleapis.com/maven2/")
         gradlePluginPortal()
     }
 }
@@ -11,6 +13,8 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        // Google's copy of Maven Central, used when Central refuses a CI runner (rate limits).
+        maven("https://maven-central.storage-download.googleapis.com/maven2/")
     }
 }
 
