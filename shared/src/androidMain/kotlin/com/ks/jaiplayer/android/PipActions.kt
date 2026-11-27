@@ -62,10 +62,10 @@ class PipActions(private val context: Context, private val perform: (PlayerActio
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU || Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return emptyList()
         val l = labels
         return listOf(
-            remote(PlayerAction.SeekBack, android.R.drawable.ic_media_rew, l.back),
-            if (playing) remote(PlayerAction.TogglePlay, android.R.drawable.ic_media_pause, l.pause)
-            else remote(PlayerAction.TogglePlay, android.R.drawable.ic_media_play, l.play),
-            remote(PlayerAction.SeekForward, android.R.drawable.ic_media_ff, l.forward),
+            remote(PlayerAction.SeekBack, com.ks.jaiplayer.shared.R.drawable.ic_pip_back, l.back),
+            if (playing) remote(PlayerAction.TogglePlay, com.ks.jaiplayer.shared.R.drawable.ic_pip_pause, l.pause)
+            else remote(PlayerAction.TogglePlay, com.ks.jaiplayer.shared.R.drawable.ic_pip_play, l.play),
+            remote(PlayerAction.SeekForward, com.ks.jaiplayer.shared.R.drawable.ic_pip_forward, l.forward),
         )
     }
 

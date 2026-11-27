@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- KS JaiPlayer's notification icon (background audio): the ring, playhead dot and play mark as a white silhouette. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="1.85" android:strokeLineCap="round" android:pathData="M15.45,2.53 A10.08,10.08 0 1 0 21.47,8.55" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M17.62,4.87 a1.51,1.51 0 1 0 3.02,0 a1.51,1.51 0 1 0 -3.02,0 Z" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M9.31,8.47 Q9.31,6.96 10.63,7.71 L16.87,11.25 Q18.18,12.00 16.87,12.75 L10.63,16.29 Q9.31,17.04 9.31,15.53 Z" />
+</vector>

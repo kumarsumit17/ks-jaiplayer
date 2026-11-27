@@ -1,5 +1,6 @@
 # 2026-11-27
 
+* **Update**: new KS JaiPlayer icon on every platform, drawn to stand apart from other players: a deep-blue tile with a white progress ring, a light-blue playhead dot in the ring's gap, and a white play mark. Android gets an adaptive launcher icon (round and themed variants), its own media-notification icon and picture-in-picture glyphs instead of the system ones; the Google TV banner carries the mark and the name set in Inter (SIL OFL) as outlines; the macOS `.icns`, Windows `.ico`, window icon and Play listing icon are redrawn to match.
 * **Update**: the macOS and Windows apps now carry KS JaiPlayer's own icon (a dark play mark on amber, as on Android and inside the app) instead of Compose's default Kotlin logo: `desktop/mac/packaging/icon.icns` on the macOS icon grid, `desktop/windows/packaging/icon.ico` (16 to 256 px), and the window icon.
 * **Update**: [Per-platform optimization plan](plan-per-platform.md): macOS AppCDS archive made during packaging (warm start to first frame about 1.2–1.45 s instead of 2.0–2.2 s); Windows taskbar thumbnail buttons through observe-only thread hooks (not yet run on Windows).
 

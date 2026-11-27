@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- KS JaiPlayer adaptive icon, foreground: a white progress ring with a light-blue playhead dot in its gap, and a white play mark (same drawing as the desktop icons). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:strokeColor="#EBFFFFFF" android:strokeWidth="3.96" android:strokeLineCap="round" android:pathData="M61.39,33.70 A21.60,21.60 0 1 0 74.30,46.61" />
+    <path android:fillColor="#FF8FE3FF" android:pathData="M66.03,38.73 a3.24,3.24 0 1 0 6.48,0 a3.24,3.24 0 1 0 -6.48,0 Z" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M48.24,46.44 Q48.24,43.20 51.06,44.80 L64.43,52.40 Q67.25,54.00 64.43,55.60 L51.06,63.20 Q48.24,64.80 48.24,61.56 Z" />
+</vector>

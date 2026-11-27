@@ -18,6 +18,11 @@ class PlaybackService : MediaSessionService() {
 
     override fun onCreate() {
         super.onCreate()
+        // The media notification shows KS JaiPlayer's own icon, not Media3's default one.
+        setMediaNotificationProvider(
+            androidx.media3.session.DefaultMediaNotificationProvider.Builder(this).build()
+                .apply { setSmallIcon(com.ks.jaiplayer.shared.R.drawable.ic_notification) },
+        )
         running = this
         session?.let(::addSession)
     }
