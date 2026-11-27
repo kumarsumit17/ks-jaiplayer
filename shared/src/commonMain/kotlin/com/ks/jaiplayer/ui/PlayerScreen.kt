@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -427,15 +428,25 @@ private fun Controls(app: JaiPlayerState, state: PlaybackState, playFocus: Focus
                 if (form == FormFactor.Desktop) VolumeSlider(state, controller)
                 PluginControls(app, ControlSlot.Start, state)
                 Spacer(Modifier.weight(1f))
-                SpeedMenu(app, state)
-                if (series) EpisodeMenu(app, list)
-                PluginControls(app, ControlSlot.End, state)
+                // A phone has no room for everything in one row: the rest goes in a row of its own.
+                if (form != FormFactor.Phone) {
+                    SpeedMenu(app, state)
+                    if (series) EpisodeMenu(app, list)
+                    PluginControls(app, ControlSlot.End, state)
+                }
                 if (form == FormFactor.Desktop) {
                     ControlButton(
                         if (app.fullScreen) JaiIcons.ExitFullScreen else JaiIcons.FullScreen,
                         stringResource(if (app.fullScreen) Res.string.player_exit_full_screen else Res.string.player_full_screen),
                         { app.fullScreen = !app.fullScreen },
                     )
+                }
+            }
+            if (form == FormFactor.Phone) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+                    SpeedMenu(app, state)
+                    if (series) EpisodeMenu(app, list)
+                    PluginControls(app, ControlSlot.End, state)
                 }
             }
         }

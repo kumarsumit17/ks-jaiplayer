@@ -18,6 +18,7 @@ okf_version: "0.2"
 
 * [Plugins](plugins.md) - The minimal core of KS JaiPlayer and the plugin API that adds every other feature, with the built-in plugins.
 * [Writing a desktop plugin](writing-plugins.md) - How to build a third-party KS JaiPlayer plugin as a jar for the macOS and Windows apps, and how the app finds, switches and loads it.
+* [Audio effects](audio-effects.md) - The audio presets, bass and dialogue controls and custom equalizer of KS JaiPlayer, how each platform applies them, their limits, and how they are tested.
 * [Smooth playback](smoothness.md) - How desktop video reaches the screen without stalls, how seeking and playback speed behave, and how smoothness is measured.
 
 # Policies

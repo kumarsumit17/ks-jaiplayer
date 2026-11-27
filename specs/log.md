@@ -1,5 +1,6 @@
 # 2026-11-27
 
+* **Added**: [Audio effects](audio-effects.md): presets (Original, Bass boost, Music, Cinema, Dialogue boost, Loud and clear, Night mode, Vocal boost, Custom) for videos and for music, bass and dialogue levels, a 10-band equalizer; Android and Google TV with JaiPlayer's own processor (equalizer, compression, limiter, centre channel), desktop with libVLC's equalizer (tone only). [Plugins](plugins.md) lists it; on a phone the speed, episode and plugin buttons move to a second row of the player bar, so none is cut off.
 * **Added**: [Progress](progress.md) and [Audit against the suite standards](plan-standards.md): class C confirmed, items classified, v1.11.3 size baseline, plan to the release pull request.
 * **Added**: [DEV builds side by side](dev-variant.md): `-PksVariant=dev` builds KS JaiPlayer DEV, with its own Android ID (`com.ks.jaiplayer.dev`), macOS bundle ID, Windows upgrade code, names, DEV-marked icons and banner, data folders and settings, no file types claimed and no updater, so it installs next to production and never touches it (KS-Suite "DEV and PROD side by side").
 * **Update**: on ks-utility v0.18.4; the release and bump workflows call ks-utility's shared workflows at `@main` (always its newest release), as KS-Suite's rule now asks.
