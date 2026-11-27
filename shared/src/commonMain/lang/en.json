@@ -75,5 +75,6 @@
   "settings.pluginRestart": "Changes apply the next time KS JaiPlayer starts.",
   "settings.pluginFolder": "Open folder",
   "settings.tunneling": "Tunnelled playback",
-  "settings.tunnelingHint": "Can make 4K play more smoothly on some TVs. Turn it off if the picture or sound stutters."
+  "settings.tunnelingHint": "Can make 4K play more smoothly on some TVs. Turn it off if the picture or sound stutters.",
+  "update.openedMacQuits": "The disk image is open. {app} now closes: drag it into Applications, choose Replace, then open it again."
 }

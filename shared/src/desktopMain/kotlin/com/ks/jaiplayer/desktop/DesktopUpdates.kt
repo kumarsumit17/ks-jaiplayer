@@ -11,7 +11,11 @@ import kotlin.system.exitProcess
 /** The running version: the packaged app and `run` pass it as -Djaiplayer.version (from the git tag). */
 fun desktopAppVersion(): String = System.getProperty("jaiplayer.version")?.takeIf { it.isNotBlank() } ?: "0.0.0"
 
-/** macOS: opens the dmg. Windows: starts the installer, then quits so the app can be replaced. */
+/**
+ * Windows: starts the installer, then quits so the app can be replaced. macOS: opens the dmg,
+ * shows the sentence for a few seconds, then quits too, so dragging the new app into
+ * Applications replaces this one (Finder will not replace an app that is running).
+ */
 class DesktopInstaller(private val beforeQuit: () -> Unit) : UpdateInstaller {
     private val windows = System.getProperty("os.name").startsWith("Windows")
 
@@ -35,6 +39,11 @@ class DesktopInstaller(private val beforeQuit: () -> Unit) : UpdateInstaller {
         // Quarantine, as for a browser download, so Gatekeeper checks it.
         runCatching { ProcessBuilder("xattr", "-w", "com.apple.quarantine", "0081;00000000;KS JaiPlayer;", file.path).start().waitFor() }
         ProcessBuilder("open", file.path).start().waitFor()
+        Thread({
+            Thread.sleep(MAC_QUIT_AFTER_MS)
+            beforeQuit()
+            exitProcess(0)
+        }, "update-quit").apply { isDaemon = true }.start()
         return OpenedOn.Mac
     }
 
@@ -48,3 +57,6 @@ fun desktopUpdater(settings: SettingsStore, beforeQuit: () -> Unit): GitHubUpdat
     val platform = UpdatePlatform.current() ?: return null
     return GitHubUpdater(GitHubUpdater.REPO, desktopAppVersion(), platform, settings, DesktopInstaller(beforeQuit)).also { it.start() }
 }
+
+/** How long the Mac app shows "the app now closes" before it quits for the update. */
+private const val MAC_QUIT_AFTER_MS = 6_000L
