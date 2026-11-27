@@ -1,3 +1,7 @@
+# 2026-11-28
+
+* **Update**: [Smooth playback](smoothness.md): Skia's GPU texture cache limited to 64 MB (187 to 237 MB less memory while playing on macOS). [Bundled libVLC](plan-bundled-vlc-and-plugins.md): 99 plugins the app never uses left out (194 kept), and the macOS app no longer carries the other chip's Skia library: the arm64 dmg goes from 103.4 to 80.5 MB.
+
 # 2026-11-27
 
 * **Added**: [Audio effects](audio-effects.md): presets (Original, Bass boost, Music, Cinema, Dialogue boost, Loud and clear, Night mode, Vocal boost, Custom) for videos and for music, bass and dialogue levels, a 10-band equalizer; Android and Google TV with JaiPlayer's own processor (equalizer, compression, limiter, centre channel), desktop with libVLC's equalizer (tone only). [Plugins](plugins.md) lists it; on a phone the speed, episode and plugin buttons move to a second row of the player bar, so none is cut off.

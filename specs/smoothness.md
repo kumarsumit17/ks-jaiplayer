@@ -14,6 +14,8 @@ Goal: playback as smooth and responsive as the best desktop players (IINA is the
 - **Three rotating buffers, no shared waiting.** libVLC decodes into one buffer, one holds the newest finished frame, one is on screen. A buffer on screen is not given back to libVLC until the surface has drawn a newer one, because the window may render a recorded frame after the draw call returns. A lock guards only the three indices, so the decoder and the window never wait for each other (`VideoFrames.kt`).
 - **Redraw only the video.** A new frame invalidates the video canvas's drawing, not the composition.
 
+- **Small GPU texture cache.** Each frame's planes are new Skia images, uploaded as new textures; Skia keeps old ones until its cache budget (256 MB) is full, about 360 MB of graphics memory holding frames that are never drawn again. `GpuCacheLimit` sets the window's budget to 64 MB (reached by reflection, since Skiko does not expose it; if that fails nothing changes, and `JAIPLAYER_GPU_CACHE=default` turns it off for diagnosis). Measured on an Apple chip: 187 to 237 MB less memory while playing, the same CPU, 30 of 30 frames drawn at 4K.
+
 ## Seeking
 - Seeks are coalesced in the libVLC engine: while one runs, newer requests replace each other, and only the latest is sent. Dragging the bar or holding an arrow key never builds a queue.
 - The seek bar scrubs live: the picture follows the thumb while it is dragged, and letting go seeks to the exact spot.

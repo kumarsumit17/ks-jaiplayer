@@ -76,6 +76,7 @@ actual fun VideoSurface(engine: PlayerEngine, modifier: Modifier, fill: Boolean)
         frames.version.longValue // Read while drawing: a new frame redraws, without recomposing.
         val start = System.nanoTime()
         val frame = frames.frameToDraw() ?: return@Canvas
+        if (System.getenv("JAIPLAYER_GPU_CACHE") != "default") GpuCacheLimit.apply()
         val l = frame.layout
         val w = l.width
         val h = l.height
