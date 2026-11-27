@@ -75,6 +75,5 @@
   "settings.pluginRestart": "बदलाव अगली बार KS JaiPlayer खुलने पर लागू होंगे।",
   "settings.pluginFolder": "फ़ोल्डर खोलें",
   "settings.tunneling": "टनल्ड प्लेबैक",
-  "settings.tunnelingHint": "कुछ टीवी पर 4K को और आसानी से चला सकता है। तस्वीर या आवाज़ अटके तो इसे बंद करें।",
-  "update.openedMacQuits": "डिस्क इमेज खुल गई है। {app} अब बंद होगा: इसे Applications में खींचें, Replace चुनें, फिर दोबारा खोलें।"
+  "settings.tunnelingHint": "कुछ टीवी पर 4K को और आसानी से चला सकता है। तस्वीर या आवाज़ अटके तो इसे बंद करें।"
 }

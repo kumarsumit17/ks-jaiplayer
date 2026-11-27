@@ -38,7 +38,7 @@ import com.ks.jaiplayer.resources.common_app_update_install_failed
 import com.ks.jaiplayer.resources.common_app_update_no_installer
 import com.ks.jaiplayer.resources.common_app_update_open_failed
 import com.ks.jaiplayer.resources.common_app_update_opened_android
-import com.ks.jaiplayer.resources.update_opened_mac_quits
+import com.ks.jaiplayer.resources.common_app_update_opened_mac_closes
 import com.ks.jaiplayer.resources.common_app_update_opened_windows
 import com.ks.jaiplayer.resources.common_app_update_section
 import com.ks.jaiplayer.resources.common_app_update_unreadable
@@ -114,7 +114,7 @@ private fun statusText(status: UpdateStatus): String? = when (status) {
     is UpdateStatus.Downloading -> stringResource(Res.string.common_app_update_downloading, status.version)
     is UpdateStatus.Opened -> when (status.on) {
         // The Mac app quits a few seconds after opening the disk image, so Finder can replace it.
-        OpenedOn.Mac -> stringResource(Res.string.update_opened_mac_quits, stringResource(Res.string.app_name))
+        OpenedOn.Mac -> stringResource(Res.string.common_app_update_opened_mac_closes, stringResource(Res.string.app_name))
         OpenedOn.Windows -> stringResource(Res.string.common_app_update_opened_windows)
         OpenedOn.Android -> stringResource(Res.string.common_app_update_opened_android)
     }
