@@ -49,6 +49,8 @@ compose.desktop {
             windows {
                 menu = true
                 menuGroup = "KS-Suite"
+                // KS JaiPlayer's icon, 16 to 256 px.
+                iconFile.set(project.file("packaging/icon.ico"))
                 shortcut = true
                 dirChooser = true
                 // Fixed for the life of the app, so new versions upgrade the installed one.

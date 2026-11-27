@@ -1,6 +1,7 @@
 package com.ks.jaiplayer.desktop
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.foundation.window.WindowDraggableArea
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -132,6 +133,8 @@ fun runDesktopApp(config: DesktopConfig) {
             onCloseRequest = quit,
             state = windowState,
             title = "KS JaiPlayer",
+            // The window's own icon (Windows title bar and taskbar, the Dock when run from Gradle).
+            icon = windowIcon,
         ) {
             windowRef[0] = window
             LaunchedEffect(Unit) { com.ks.jaiplayer.vlc.FrameStats.mark("windowComposed") }
@@ -298,6 +301,15 @@ private fun systemReducesMotion(): Boolean = runCatching {
 
 /** The height of the macOS title bar, kept free at the top when the content runs under it. */
 private const val MAC_TITLE_BAR_DP = 28
+
+/** KS JaiPlayer's icon from the app's resources, or null to keep the system's default. */
+private val windowIcon: androidx.compose.ui.graphics.painter.Painter? by lazy {
+    runCatching {
+        val stream = DesktopConfig::class.java.getResourceAsStream("/jaiplayer-icon.png") ?: return@runCatching null
+        val image = stream.use { javax.imageio.ImageIO.read(it) }
+        androidx.compose.ui.graphics.painter.BitmapPainter(image.toComposeImageBitmap())
+    }.getOrNull()
+}
 
 private const val HELP_URL = "https://github.com/kumasumit/ks-jaiplayer"
 

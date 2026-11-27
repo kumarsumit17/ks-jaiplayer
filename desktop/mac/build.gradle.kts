@@ -40,6 +40,8 @@ compose.desktop {
             modules("java.prefs", "java.desktop", "jdk.unsupported")
             macOS {
                 bundleID = "com.ks.jaiplayer"
+                // KS JaiPlayer's icon (a dark play mark on amber) on the macOS icon grid.
+                iconFile.set(project.file("packaging/icon.icns"))
                 appCategory = "public.app-category.video"
                 infoPlist {
                     extraKeysRawXml = file("packaging/document-types.plist").readText()

@@ -1,5 +1,6 @@
 # 2026-11-27
 
+* **Update**: the macOS and Windows apps now carry KS JaiPlayer's own icon (a dark play mark on amber, as on Android and inside the app) instead of Compose's default Kotlin logo: `desktop/mac/packaging/icon.icns` on the macOS icon grid, `desktop/windows/packaging/icon.ico` (16 to 256 px), and the window icon.
 * **Update**: [Per-platform optimization plan](plan-per-platform.md): macOS AppCDS archive made during packaging (warm start to first frame about 1.2–1.45 s instead of 2.0–2.2 s); Windows taskbar thumbnail buttons through observe-only thread hooks (not yet run on Windows).
 
 # 2026-11-26
