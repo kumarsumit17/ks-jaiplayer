@@ -13,6 +13,9 @@ activity = "1.13.0"
 androidCompileSdk = "37"
 androidMinSdk = "26"
 androidTargetSdk = "37"
+# FFmpeg decoder (shared/ffmpeg): NDK r27 (LTS, on GitHub's ubuntu-24.04 image) and CMake.
+androidNdk = "27.3.13750724"
+androidCmake = "3.22.1"
 
 [libraries]
 # Compose Multiplatform (commonMain).

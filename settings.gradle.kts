@@ -24,6 +24,7 @@ rootProject.name = "ks-jaiplayer"
 includeBuild("ks-utility/kotlin")
 
 include(":shared")
+include(":shared:ffmpeg")
 include(":desktop:mac", ":desktop:windows")
 // A sample third-party plugin for the desktop apps; never part of an installer.
 include(":desktop:plugin-sample")

@@ -32,6 +32,8 @@ concurrency:
 
 jobs:
   release:
+    # @main is always ks-utility's newest release. @dev only while a DEV build tries ks-utility's
+    # unreleased dev (ks-suite-check refuses @dev in a tag release).
     uses: kumasumit/ks-utility/.github/workflows/kotlin-app-release.yml@main
     permissions:
       contents: write
