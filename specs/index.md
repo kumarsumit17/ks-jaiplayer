@@ -11,6 +11,7 @@ okf_version: "0.2"
 
 * [Progress](progress.md) - KS JaiPlayer's checkpoint: phase, work done, pending tasks, blockers and the exact next action.
 * [Audit against the suite standards](plan-standards.md) - KS JaiPlayer checked against KS-Suite's architecture, security and storage standards, with each item classified and the plan for the next release.
+* [Playback plan](plan-playback.md) - The consolidated, owner-approved playback plan (2026-11-28) in phases with gates; it replaces the "Playback Optimization and StreamFlix Readiness" brief.
 * [Android playback CPU](plan-android-cpu.md) - How JaiPlayer's CPU use during Android playback is measured (whole device first), how it compares with other players, and what is ruled in or out.
 * [macOS playback](plan-macos-playback.md) - How JaiPlayer's playback cost on macOS is measured, and the results of Job 2 of the playback optimization brief (10-bit frame path).
 * [Per-platform optimization plan](plan-per-platform.md) - Approved plan for making each build (macOS, Windows, Android phone, Google TV) its own app with its own version, tuned to its OS.
