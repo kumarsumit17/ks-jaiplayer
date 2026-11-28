@@ -1,5 +1,6 @@
 # 2026-11-28
 
+* **Update**: [Android playback CPU](plan-android-cpu.md): Phase 2 results: steps 1, 2 and 4 no measurable change (not kept), step 3 not done (it would silence a chosen effect until the next seek), step 5 kept (profileable release builds) with a trace showing an uncompiled fresh install; compiled, JaiPlayer equals MX's pipeline; rule: compile every player before comparing.
 * **Update**: [Android playback CPU](plan-android-cpu.md) (Job 1 of the brief "Playback Optimization and StreamFlix Readiness"): the "MX Player 4× more efficient" claim corrected (app-only CPU; whole device the two are level), the rule to compare players on the whole device, the decoders confirmed hardware by their flags, Phase 2 replaced by Job 3; [Progress](progress.md) points to it.
 * **Update**: [Android CPU optimization](plan-android-cpu.md): Phase 2 proposed, six steps, each A/B tested on the Pixel 11, waiting for the owner's approval.
 * **Update**: [Android CPU optimization](plan-android-cpu.md): whole-device CPU on the Pixel 11, JaiPlayer 139–151 % against MX Player 157–177 % (MX's pipeline runs in mediaserver); 4K HEVC 10-bit decodes in hardware.

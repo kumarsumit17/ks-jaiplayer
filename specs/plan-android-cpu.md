@@ -44,9 +44,11 @@ speed is set to 2× for all videos on that phone).
 - Files opened with `ACTION_VIEW`, an explicit package and `--grant-read-uri-permission` on a
   MediaStore URI, from the start, controls hidden, 2 rounds, sampled after 8 s; phone charging,
   other players stopped.
-- Builds: release-equivalent only (R8, not debuggable). The DEV 1.12.0 APK is (one minified
-  `classes.dex`, baseline profile). A debug build costs much more (57–70 % app on the same file)
-  and is never compared with a release build.
+- Builds: release-equivalent only (R8, not debuggable), and compiled to the same state as the
+  players compared with (`cmd package compile -m speed-profile -f <package>`); a fresh adb install
+  runs uncompiled. The DEV 1.12.0 APK is release-equivalent (one minified `classes.dex`, baseline
+  profile). A debug build costs much more (57–70 % app on the same file) and is never compared with
+  a release build.
 
 ## Decoders: hardware, confirmed by the codec's flags
 
@@ -86,8 +88,41 @@ Not a comparison with other players; it shows where JaiPlayer spends its share.
 - One playback engine per platform.
 - The automatic landscape orientation stays as it is (a separate decision).
 
+## Phase 2 of the first brief: results (finished before the new brief, at the owner's request)
+
+Release builds signed with a test key, installed next to DEV as `com.ks.jaiplayer`, 3-minute
+1080p60 H.264 file, app and whole device at 1× (20 s) and 4× (10 s), 2 rounds, builds alternated.
+
+| Build | App 1× | App 4× | Whole device 1× | Whole device 4× |
+|---|---|---|---|---|
+| Baseline | 53.0, 53.6 % | 124, 128 % | 154, 158 % | 322, 305 % |
+| 1: dynamic scheduling + renderer duration-to-progress | 49.9, 52.7 % | 124, 129 % | 152, 145 % | 329, 299 % |
+| 1 + 2: speed change in AudioTrack | 46.4, 51.5 % | 126, 126 % | 222 (outlier), 146 % | 309, 295 % |
+| 1 + 2 + 4: drop late frames before decoding | 52.0, 51.9 % | 124, 130 % | 172, 152 % | 296, 309 % |
+
+1. **Not kept**: within the noise between rounds.
+2. **Not kept**: within the noise.
+3. **Not done**: Media3 reads an audio processor's active state only when the stream restarts
+   (seek, new file), so turning the effects processor off with no effect chosen would leave a chosen
+   effect silent until the next seek, or need a restart with a gap in the sound. The copy it would
+   save (192 KB/s) is below what can be measured.
+4. **Not kept**: within the noise.
+5. **Kept** (47b0979): release builds are profileable from adb (`<profileable android:shell="true"/>`).
+   A simpleperf trace of the baseline at 1080p60 1×: MediaCodec_loop 31 %, ExoPlayer:Playback 26 %,
+   CodecLooper 8 %, binder threads 20 %; 41 % of samples in `libc` (system calls, the codec's per-buffer
+   `mmap`/`munmap`), 22 % in ART. The playback thread ran in ART's interpreter: a fresh adb install is
+   not compiled ahead of time (`dumpsys package dexopt`: test build `run-from-apk`, DEV `verify`,
+   MX `speed-profile`). Compiled (`cmd package compile -m speed-profile`, which Android's idle
+   maintenance does for every app), the app takes 46–49 % at 1×, the same as full `speed`
+   compilation (46–47 %) and as MX's pipeline (45 %). 4× stays about 125 %: the per-frame cost is in
+   Android's codec libraries.
+6. **Not applicable**: no playback change was kept, so there is no before and after.
+
+Method rule from this: compile every player to the same state before comparing
+(`adb shell cmd package compile -m speed-profile -f <package>`; check with `dumpsys package dexopt`).
+
 ## Next (Job 3 of the brief)
 
 Measure JaiPlayer and MX Player at 4× on the Pixel 11 with the whole-device method (device, app,
-`mediaserver`), report, and continue to profiling and fixes only if JaiPlayer is meaningfully worse
-or a profile shows clear waste. The first brief's Phase 2 (six proposed fixes) is replaced by this.
+`mediaserver`), both compiled, report, and continue to profiling and fixes only if JaiPlayer is
+meaningfully worse or a profile shows clear waste.
