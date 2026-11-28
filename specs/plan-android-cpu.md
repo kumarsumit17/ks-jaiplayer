@@ -121,6 +121,45 @@ Release builds signed with a test key, installed next to DEV as `com.ks.jaiplaye
 Method rule from this: compile every player to the same state before comparing
 (`adb shell cmd package compile -m speed-profile -f <package>`; check with `dumpsys package dexopt`).
 
+## Against VLC and MX Player (Pixel 11, DEV `63e650c`)
+
+JaiPlayer DEV 1.12.0-dev+63e650c (CI build), VLC 3.7.2 and MX Player 3.5.3, each with its own
+defaults except VLC's saved 2× speed, set to 1×. Files: 75-second cuts, test pattern, all with AAC
+audio: 1080p60 H.264 10 Mb/s; Blu-ray style 1080p23.976 H.264 36 Mb/s; 4K23.976 HEVC 10-bit 61 Mb/s.
+Method as above (20-second window after 10 s, whole device from `/proc/stat`, memory `TOTAL PSS`,
+frames from SurfaceFlinger timestats), two rounds each, rotating which player goes first. At rest
+the phone used 30–54 %.
+
+| File | Player | Whole device | Player pipeline | Memory | Dropped frames (20 s) |
+|---|---|---|---|---|---|
+| 1080p60 | JaiPlayer | 134–145 % | 47 % in the app | **148–149 MB** | **0–1** of 1204–1231 |
+| | VLC | **106–112 %** | 39 % in the app | 186–187 MB | 31–39 of 1197–1202 |
+| | MX Player | 155–165 % | 12–16 % app + 35 % `mediaserver` | 292–388 MB | 2–8 |
+| Blu-ray style | JaiPlayer | 128–180 % | 32–34 % | **148–149 MB** | **0** |
+| | VLC | **69–72 %** | 26–27 % | 194–195 MB | 0–24 |
+| | MX Player | 116–159 % | 8 % app + 23–24 % `mediaserver` | 278–289 MB | 0 |
+| 4K HEVC 10-bit | JaiPlayer | 141–162 % | 34–35 % | **148–149 MB** | **0** |
+| | VLC | **98–99 %** | 29–30 % | 197–204 MB | 0–1 |
+| | MX Player | 155–156 % | 14–15 % app + 24 % `mediaserver` | 320–321 MB | 1–9 |
+
+- **Start:** from the `VIEW` intent to the first audio playback event, three rounds: JaiPlayer
+  0.33–0.43 s, VLC 0.39–0.48 s, MX Player 0.56–0.72 s.
+- **Size installed:** JaiPlayer 2.0 MB, VLC 101 MB, MX Player 119 MB.
+- **Stability:** no crash, no ANR and no process restart in any run, including a stress run on
+  the 4K file per player: ten rounds of seek forward, seek back and pause/resume by media keys,
+  then five times Home and back through the launcher. With equal seeks (net backwards) JaiPlayer
+  came back playing. VLC and MX Player reopened on their own library or home screens, so playback
+  after the return is not comparable, and the run does not show that either honoured every key.
+- **Reading it:** JaiPlayer uses the least memory, drops the fewest frames and starts fastest; it is
+  level with MX Player on the whole device. VLC costs 30–60 points less on the whole device at 1×,
+  and drops frames at 1080p60. In JaiPlayer's runs `system_server` used 14–20 % against VLC's 8–10 %;
+  where the rest of the gap goes is not yet profiled.
+- **5.1 AC-3 and E-AC-3 fail in JaiPlayer:** on this phone the Dolby decoder throws on the first
+  audio buffer (44.1 and 48 kHz) and JaiPlayer stops the whole video ("Can't play …"). VLC played
+  the AC-3 file; MX Player showed the E-AC-3 file's video. Found with generated files, not a real
+  disc rip; whether 1.11.3 fails too is not checked. JaiPlayer should fall back (another audio
+  decoder, or video without that track) instead of stopping.
+
 ## Next (Job 3 of the brief)
 
 Measure JaiPlayer and MX Player at 4× on the Pixel 11 with the whole-device method (device, app,

@@ -1,5 +1,6 @@
 # 2026-11-28
 
+* **Update**: [Android playback CPU](plan-android-cpu.md): JaiPlayer DEV against VLC and MX Player on the Pixel 11 (CPU, memory, dropped frames, start, size, stress); 5.1 AC-3 and E-AC-3 stop playback in JaiPlayer.
 * **Update**: [macOS playback](plan-macos-playback.md): JaiPlayer DEV against VLC and IINA on 1080p60, Blu-ray-style and 4K HDR files.
 * **Add**: [macOS playback](plan-macos-playback.md): Job 2 measured: P010 cuts app CPU on 4K 10-bit from 51 to 34 %; 16-bit planar from software decoding measured worse and was dropped.
 * **Update**: [Smooth playback](smoothness.md): VideoToolbox's 10-bit video stays 10-bit (P010) in the desktop frame path; 10-bit software decoding is converted to 8-bit as before, since 16-bit planar frames measured worse.
