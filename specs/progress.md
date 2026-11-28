@@ -22,7 +22,7 @@ Updated 2026-11-28. KS JaiPlayer is the suite's active app ([KS-Suite progress](
 - **Owner:** manual test of the DEV builds (side by side, every audio preset per platform, Windows and real devices); approval in the pull request. Recommended: Dependabot alerts on.
 - **Release pull request:** `dev` → `main`, open, waiting for the owner's test and approval (link in the KS-Suite progress row).
 - **Release candidate tested (2026-11-28):** run 46152779805 on Mac and Pixel 11, DEV beside 1.11.3: 1080p film, AC-3 with and without a second track, 4K HDR colour, subtitles, all 9 presets, seek, pause, speed pass; http plays on Android; desktop cannot open http links (as in 1.11.3, for P2). Details in PR #6.
-- **Next action:** AC-3/E-AC-3 software decoder (owner, 2026-11-28): code and size done (+0.66 MB arm64, +0.53 MB armeabi-v7a); next the DEV build, the device tests and PR #6. Then the macOS native video and HDR trial. No merge, tag or release.
+- **Next action:** the owner's manual test of DEV run 46158416875 (`881a024`, AC-3/E-AC-3 decoder; device results in [Audio codec compatibility](plan-audio-codecs.md)) and approval of PR #6. Owner to decide: `dev` also holds the macOS video trial (`b997c20` and after, behind a flag), which PR #6 would merge. No merge, tag or release.
 
 ## Completion criteria
 
@@ -31,7 +31,7 @@ From the [Playback plan](plan-playback.md).
 | # | Criterion | Status | Evidence so far |
 |---|---|---|---|
 | 1 | HDR colour correct | open | Desktop tone mapping done, close to VLC; files without colour metadata, real HDR films, Windows still open ([macOS](plan-macos-playback.md)) |
-| 2 | AC-3/E-AC-3 resolved, codec matrix validated | open | Video no longer stops (`ae9c4a1`); [matrix](plan-audio-codecs.md) made on Pixel 11, emulators and macOS (Windows, real TV open); no AC-3/E-AC-3 sound on Android yet (Gate 2) |
+| 2 | AC-3/E-AC-3 resolved, codec matrix validated | open | AC-3/E-AC-3 sound on Pixel 11 and emulators (`881a024`); [matrix](plan-audio-codecs.md); Windows, real Google TV and passthrough open |
 | 3 | Native video view trial and approved solution | open | macOS trial done, route A (AVSampleBufferDisplayLayer) recommended, waits for the owner's approval ([macOS](plan-macos-playback.md)) |
 | 4 | CPU, GPU, memory, battery optimized from measurements | open | Part: [macOS](plan-macos-playback.md), [Android](plan-android-cpu.md); battery not proven |
 | 5 | Android 4× investigation | open | Not started (P1-D) |

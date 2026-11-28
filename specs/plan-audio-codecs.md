@@ -61,6 +61,13 @@ The owner chose option 3 for **AC-3 and E-AC-3 only**, in 1.12.0 (no DTS or True
 - **Size** (release APK against DEV `b9d0bd4`): arm64 +0.66 MB (library 650,904 bytes), armeabi-v7a +0.53 MB, licence files 10 KB. Universal APK 2.00 to 3.18 MB (+1.18 MB); the library is stored uncompressed, so a sideloaded install grows by the same, a per-processor Play install by about 0.7 MB. Under the 2 MB-per-processor limit.
 - **Tests:** `AudioFallbackTest` covers the order (9 tests).
 
+### Device results (DEV `881a024`, 2026-11-28)
+
+- **Pixel 11:** AC-3 and E-AC-3 (5.1 and stereo) play with sound; the audio track is 5.1 for 5.1 files. On the first Dolby file the platform decoder fails once and FFmpeg takes over; later files go straight to FFmpeg. AC-3 + AAC plays the AC-3 track, no switch and no message. DTS keeps the picture. AAC uses the platform decoder as before. Production 1.11.3 still stops on AC-3 and E-AC-3.
+- **20 minutes, 1080p H.264 with AC-3 5.1:** whole device 100–106 %, app 24.2–25.4 % of one core, memory 134 MB at the start and 139–140 MB after, 9 of 28,902 frames dropped, no error, crash or audio underrun; battery 70 to 68 %, 29.8 to 30.7 °C. No run without the software decoder on the same file to compare.
+- Seek, pause and resume, speed, subtitles, all nine presets and an http link (frames at the film's rate) pass.
+- **Phone and Google TV emulators:** the same Dolby files play with sound; DTS picture only. No real Google TV or receiver, so passthrough is untested.
+
 ## Recommendation (for Gate 2)
 
 Option 3, with option 2 kept as it is:
