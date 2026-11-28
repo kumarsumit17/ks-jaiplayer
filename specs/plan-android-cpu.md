@@ -74,6 +74,36 @@ high speeds.
 - [ ] Audio processing: `EffectsAudioProcessor` copies every PCM sample even with no effect on.
       For 48 kHz stereo that is 192 KB/s, far below what the measurement can show; not measured.
       Bypassing it when no effect is active is cheap to do and safe.
-- [ ] Controls visible against hidden; dropped frames; system media-process CPU.
+- [ ] Controls visible against hidden; dropped frames.
 - [ ] Cost inside the Media3 pipeline itself (the brief's last suspect): method trace of
       ExoPlayer:Playback with a profileable build.
+
+## Phase 2: fixes (proposed, waiting for the owner's approval)
+
+Target: JaiPlayer's playback work at or below MX's (about 45 % of one core at 1080p60 1×, from
+52 %), and well under one core at 4× (100 % today), with memory, quality, features and stability
+unchanged. Each step is one change, A/B tested on the Pixel 11 with the method above (whole
+device and app, 1× and 4×, 2 rounds, DEV-equivalent release builds), and kept only if it wins and
+nothing gets worse. Phone and Google TV share the engine, so a kept change is checked on both.
+
+1. **Let the playback thread sleep.** Media3's dynamic scheduling together with
+   `DefaultRenderersFactory.setEnableMediaCodecVideoRendererDurationToProgressUs(true)`, so the video
+   renderer tells the loop when it next has work. Dynamic scheduling alone did nothing, likely
+   because no renderer reported that time.
+2. **Speed change in the system, not in the app.** `setEnableAudioTrackPlaybackParams(true)`: Android's
+   AudioTrack changes the speed instead of Media3's Sonic stretching on the playback thread, which
+   grows with speed. Check: pitch kept, the audio effects still apply (they run before the speed
+   change), seeking and 0.5–4× accuracy unchanged, and fallback on devices without support.
+3. **No audio work when no effect is on.** `EffectsAudioProcessor` turns itself off (inactive) when
+   no effect is chosen, and back on when one is, without a gap in the sound.
+4. **High speeds.** `experimentalSetLateThresholdToDropDecoderInputUs`: at 2× and 4× skip frames that
+   would be shown too late anyway, instead of decoding them; check the picture still moves smoothly.
+5. **Find the rest with a trace.** A profileable release build (`<profileable android:shell="true"/>`,
+   which Google allows in production and which does not slow the app) so Perfetto can sample the
+   playback thread's methods; only if 1–4 leave a gap. Needs the owner's decision, since it goes into
+   production builds too.
+6. **Battery and heat.** Before and after: `dumpsys batterystats` per-app power estimate and the
+   device temperature over a 10-minute playback.
+
+Each kept change: a commit on `dev`, the tests, a DEV build, the owner's hand test, then a release
+with the owner's approval (the suite's release cycle).

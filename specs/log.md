@@ -1,5 +1,6 @@
 # 2026-11-28
 
+* **Update**: [Android CPU optimization](plan-android-cpu.md): Phase 2 proposed, six steps, each A/B tested on the Pixel 11, waiting for the owner's approval.
 * **Update**: [Android CPU optimization](plan-android-cpu.md): whole-device CPU on the Pixel 11, JaiPlayer 139–151 % against MX Player 157–177 % (MX's pipeline runs in mediaserver); 4K HEVC 10-bit decodes in hardware.
 * **Add**: [Android CPU optimization](plan-android-cpu.md): the owner's brief, the measurement method, the Pixel 11 baseline, what is ruled out and what is left of Phase 1.
 * **Update**: [DEV variant](dev-variant.md): the macOS DEV app claims video and audio files at rank Alternate like production, so Finder's Open With and `open -a` play the file (before, DEV started with no window).
