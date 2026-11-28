@@ -41,8 +41,8 @@ internal class VideoFrames {
         }
     }
 
-    /** Where the planes of a frame lie in its buffer. */
-    class Layout(val width: Int, val height: Int, val chroma: Chroma = Chroma.I420) {
+    /** Where the planes of a frame lie in its buffer, and the colours they hold. */
+    class Layout(val width: Int, val height: Int, val chroma: Chroma = Chroma.I420, val colour: VideoColour = VideoColour.Unknown) {
         val chromaWidth = (width + 1) / 2
         val chromaHeight = (height + 1) / 2
         val planes = chroma.planes
@@ -76,13 +76,16 @@ internal class VideoFrames {
     private var shown: Frame? = null
     private var shownIndex = -1
 
+    /** The colour description of the file being opened; set before playback starts (VlcPlayerEngine). */
+    @Volatile var colour: VideoColour = VideoColour.Unknown
+
     /** Bumped for every frame; the surface reads it while drawing, so only drawing repeats. */
     val version = mutableLongStateOf(0L)
 
     // JNA callbacks must stay strongly referenced while libVLC can call them.
     val format = LibVlc.FormatCallback { _, chroma, w, h, pitches, lines ->
         val proposed = chroma.getByteArray(0, 4).decodeToString()
-        val l = Layout(w.getInt(0), h.getInt(0), Chroma.forProposed(proposed))
+        val l = Layout(w.getInt(0), h.getInt(0), Chroma.forProposed(proposed), colour)
         chroma.write(0, l.chroma.fourcc.encodeToByteArray(), 0, 4)
         pitches.setInt(0, l.lumaPitch)
         pitches.setInt(4, l.chromaPitch)
@@ -92,7 +95,7 @@ internal class VideoFrames {
             pitches.setInt(8, l.chromaPitch)
             lines.setInt(8, l.chromaLines)
         }
-        FrameStats.note("chroma $proposed -> ${l.chroma.fourcc} ${l.width}x${l.height}")
+        FrameStats.note("chroma $proposed -> ${l.chroma.fourcc} ${l.width}x${l.height} colour ${l.colour}")
         synchronized(lock) {
             layout = l
             buffers = Array(BUFFERS) { Memory(l.bytes) }

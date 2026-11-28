@@ -1,5 +1,6 @@
 package com.ks.jaiplayer.ui
 
+import com.ks.jaiplayer.vlc.VideoColour
 import com.ks.jaiplayer.vlc.VideoFrames
 import com.ks.jaiplayer.vlc.VideoFrames.Chroma
 import com.sun.jna.Memory
@@ -14,7 +15,7 @@ import kotlin.test.assertTrue
 
 /**
  * Both frame layouts asked of libVLC (I420 and P010) turn into the same colours on screen: limited-range white, black and BT.601 red, drawn through the real shader
- * onto a CPU surface.
+ * onto a CPU surface. HDR (PQ and HLG) is tone-mapped to match [HdrReference] within 3 of 255.
  */
 class VideoColourTest {
     private data class Yuv(val y: Int, val u: Int, val v: Int)
@@ -55,6 +56,74 @@ class VideoColourTest {
         assertEquals(Chroma.I420, Chroma.forProposed("I420"))
         assertEquals(Chroma.I420, Chroma.forProposed("I0AL"))
         assertEquals(Chroma.I420, Chroma.forProposed("RV32"))
+    }
+
+    private val hdr10 = VideoColour(primaries = 9, transfer = VideoColour.PQ, matrix = 9, peakNits = 1000f)
+
+    /** 10-bit PQ code values for test colours: (Y, Cb, Cr) in BT.2020 limited range, 0–1023. */
+    private val pqSamples = listOf(
+        Triple(64, 512, 512), // black
+        Triple(509, 512, 512), // grey at about 100 nits
+        Triple(668, 512, 512), // about 1000 nits
+        Triple(940, 512, 512), // 10,000 nits
+        Triple(400, 420, 700), // a saturated red-orange
+        Triple(500, 640, 470), // a blue
+    )
+
+    @Test
+    fun hdr10MatchesTheReference() {
+        for (colour in listOf(hdr10, hdr10.copy(peakNits = 0f), hdr10.copy(transfer = VideoColour.HLG, peakNits = 0f))) {
+            for ((y, u, v) in pqSamples) {
+                val want = HdrReference.toScreen(y, u, v, colour)
+                // P010 carries the 10 bits exactly; I420 gets them rounded to 8 bits, as libVLC's conversion does.
+                for (chroma in Chroma.entries) {
+                    val got = render10(chroma, y, u, v, colour)
+                    val tolerance = if (chroma == Chroma.P010) 3 else 6
+                    for (i in 0..2) assertTrue(abs(got[i] - want[i]) <= tolerance, "$chroma ${colour.transfer} ($y,$u,$v): got ${got.toList()}, want ${want.toList()}")
+                }
+            }
+        }
+    }
+
+    @Test
+    fun hdrIsNoLongerWashedOutAndBrighterInputStaysBrighter() {
+        // The bug: PQ drawn as if it were SDR comes out washed out. Mapped, a saturated colour keeps
+        // much more of its saturation (the spread between its brightest and dimmest channel).
+        fun spread(c: IntArray) = c.max() - c.min()
+        val pale = spread(render10(Chroma.P010, 400, 420, 700, VideoColour.Unknown))
+        val mapped = spread(render10(Chroma.P010, 400, 420, 700, hdr10))
+        assertTrue(mapped > pale + 40, "mapped spread $mapped, pale spread $pale")
+        val steps = listOf(64, 300, 509, 668, 800, 940).map { render10(Chroma.P010, it, 512, 512, hdr10)[1] }
+        assertEquals(steps.sorted(), steps, "brightness must rise with the signal: $steps")
+        assertEquals(0, steps.first())
+    }
+
+    /** Draws one 10-bit colour ([y], [u], [v] are 0–1023) in [chroma]'s layout, tagged with [colour]. */
+    private fun render10(chroma: Chroma, y: Int, u: Int, v: Int, colour: VideoColour): IntArray {
+        val size = 16
+        val l = VideoFrames.Layout(size, size, chroma, colour)
+        val mem = Memory(l.bytes)
+        if (chroma == Chroma.P010) {
+            for (row in 0 until l.lumaLines) for (x in 0 until size) mem.setShort(row.toLong() * l.lumaPitch + x * 2, (y shl 6).toShort())
+            for (row in 0 until l.chromaLines) for (x in 0 until l.chromaWidth) {
+                val at = l.uOffset + row.toLong() * l.chromaPitch + x * 4
+                mem.setShort(at, (u shl 6).toShort()); mem.setShort(at + 2, (v shl 6).toShort())
+            }
+        } else {
+            fun eight(x: Int) = ((x + 2) / 4).coerceAtMost(255).toByte()
+            for (row in 0 until l.lumaLines) for (x in 0 until size) mem.setByte(row.toLong() * l.lumaPitch + x, eight(y))
+            for (row in 0 until l.chromaLines) for (x in 0 until l.chromaWidth) {
+                mem.setByte(l.uOffset + row.toLong() * l.chromaPitch + x, eight(u))
+                mem.setByte(l.vOffset + row.toLong() * l.chromaPitch + x, eight(v))
+            }
+        }
+        val surface = Surface.makeRasterN32Premul(size, size)
+        drawVideoFrame(surface.canvas, VideoFrames.Frame(mem, l), 0f, 0f, 1f, Paint())
+        val bitmap = Bitmap()
+        bitmap.allocN32Pixels(size, size)
+        surface.readPixels(bitmap, 0, 0)
+        val p = bitmap.getColor(8, 8)
+        return intArrayOf(Color.getR(p), Color.getG(p), Color.getB(p))
     }
 
     /** Fills a 16×16 frame with one colour in [chroma]'s layout, draws it, returns its RGB. */

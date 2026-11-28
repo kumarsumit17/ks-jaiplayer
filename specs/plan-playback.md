@@ -85,6 +85,10 @@ Done, see [Android playback CPU](plan-android-cpu.md), "Dolby audio failure": an
 limitation, not a regression; the video now keeps playing. Sound for AC-3 / E-AC-3 on such a device
 still needs a decision (P1-A).
 
+### P0-B result (2026-11-28)
+
+Done, see [macOS playback](plan-macos-playback.md), "HDR colour": not new (also in 1.11.3); tone mapping in the frame shader matches its reference within 3 of 255, looks close to VLC, and costs nothing beyond noise.
+
 **Gate 1:** stop after P0; the owner decides the 1.12.0 release scope. No DEV build, tag or release
 before that.
 

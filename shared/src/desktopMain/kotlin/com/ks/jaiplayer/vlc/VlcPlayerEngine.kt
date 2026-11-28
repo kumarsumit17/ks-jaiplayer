@@ -117,6 +117,8 @@ class VlcPlayerEngine private constructor(
             applyEffects(l, mp, audioOnly = false)
             val path = runCatching { File(URI(media.uri)).path }.getOrNull()
             currentPath = path
+            // HDR is tone-mapped by the surface, which needs the colours the file states.
+            frames.colour = path?.let(VideoColour::read) ?: VideoColour.Unknown
             val hardware = hardwareOption != null && path != null && !hasSubtitles(l, inst, path)
             if (path == null || !start(l, inst, mp, path, hardware, startMs = 0)) {
                 _state.update { it.copy(status = PlaybackStatus.Error, error = PlayerError.CannotOpen) }
