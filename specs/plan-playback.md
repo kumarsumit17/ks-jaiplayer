@@ -92,6 +92,13 @@ Done, see [macOS playback](plan-macos-playback.md), "HDR colour": not new (also 
 **Gate 1:** stop after P0; the owner decides the 1.12.0 release scope. No DEV build, tag or release
 before that.
 
+### P1-A result (2026-11-28)
+
+Report in [Audio codec compatibility](plan-audio-codecs.md): desktop plays all eight codecs;
+Android plays AAC, FLAC, MP3 and Opus but not AC-3, E-AC-3, DTS or TrueHD here. Recommended:
+Media3's FFmpeg extension with only those four codecs' decoders, size to be measured first.
+**Gate 2:** the owner chooses.
+
 ## Later phases (each only on the owner's word)
 
 - **P1-A Audio compatibility** (report first, no code): AC-3, E-AC-3, DTS, TrueHD, AAC, FLAC, MP3

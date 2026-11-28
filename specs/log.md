@@ -1,5 +1,6 @@
 # 2026-11-28
 
+* **Add**: [Audio codec compatibility](plan-audio-codecs.md): P1-A matrix (8 codecs, Pixel 11, emulators, macOS), options and recommendation.
 * **Update**: [macOS playback](plan-macos-playback.md), [Smooth playback](smoothness.md), [Playback plan](plan-playback.md), [Progress](progress.md): HDR to SDR tone mapping on desktop (P0-B): cause, colour test, comparison with VLC, cost, and what true HDR output needs.
 * **Update**: [Playback plan](plan-playback.md): the owner's player principles (platform hardware path first, no CPU/GPU frame copies, custom paths only for a measured reason).
 * **Update**: [Playback plan](plan-playback.md), [Progress](progress.md): the owner's completion criteria, tracked as open or done; phase P2-M added.

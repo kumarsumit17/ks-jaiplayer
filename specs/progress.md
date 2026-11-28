@@ -21,7 +21,7 @@ Updated 2026-11-28. KS JaiPlayer is the suite's active app ([KS-Suite progress](
 - **Pending:** the owner's manual test. Hindi terms are on ks-utility `dev` (1a19951) for owner review.
 - **Owner:** manual test of the DEV builds (side by side, every audio preset per platform, Windows and real devices); approval in the pull request. Recommended: Dependabot alerts on.
 - **Release pull request:** `dev` → `main`, open, waiting for the owner's test and approval (link in the KS-Suite progress row).
-- **Next action:** Gate 1: the owner decides the 1.12.0 release scope; then the DEV build. Needed from the owner: the folder with real films.
+- **Next action:** Gate 2: the owner chooses the audio option from [Audio codec compatibility](plan-audio-codecs.md). P1 was started on the owner's word (Gate 1 deferred the release scope). Needed from the owner: the folder with real films; the Android NDK for measuring the decoder size.
 
 ## Completion criteria
 
@@ -30,7 +30,7 @@ From the [Playback plan](plan-playback.md).
 | # | Criterion | Status | Evidence so far |
 |---|---|---|---|
 | 1 | HDR colour correct | open | Desktop tone mapping done, close to VLC; files without colour metadata, real HDR films, Windows still open ([macOS](plan-macos-playback.md)) |
-| 2 | AC-3/E-AC-3 resolved, codec matrix validated | open | Video no longer stops (`ae9c4a1`); no sound on Pixel 11; matrix not made |
+| 2 | AC-3/E-AC-3 resolved, codec matrix validated | open | Video no longer stops (`ae9c4a1`); [matrix](plan-audio-codecs.md) made on Pixel 11, emulators and macOS (Windows, real TV open); no AC-3/E-AC-3 sound on Android yet (Gate 2) |
 | 3 | Native video view trial and approved solution | open | Not started (P1-C) |
 | 4 | CPU, GPU, memory, battery optimized from measurements | open | Part: [macOS](plan-macos-playback.md), [Android](plan-android-cpu.md); battery not proven |
 | 5 | Android 4× investigation | open | Not started (P1-D) |
