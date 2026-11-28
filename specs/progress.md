@@ -22,7 +22,7 @@ Updated 2026-11-28. KS JaiPlayer is the suite's active app ([KS-Suite progress](
 - **Owner:** manual test of the DEV builds (side by side, every audio preset per platform, Windows and real devices); approval in the pull request. Recommended: Dependabot alerts on.
 - **Release pull request:** `dev` → `main`, open, waiting for the owner's test and approval (link in the KS-Suite progress row).
 - **Release candidate tested (2026-11-28):** run 46152779805 on Mac and Pixel 11, DEV beside 1.11.3: 1080p film, AC-3 with and without a second track, 4K HDR colour, subtitles, all 9 presets, seek, pause, speed pass; http plays on Android; desktop cannot open http links (as in 1.11.3, for P2). Details in PR #6.
-- **Next action:** the owner's manual test of DEV run 46158416875 (`881a024`, AC-3/E-AC-3 decoder; device results in [Audio codec compatibility](plan-audio-codecs.md)) and approval of PR #6. Owner to decide: `dev` also holds the macOS video trial (`b997c20` and after, behind a flag), which PR #6 would merge. No merge, tag or release.
+- **Next action:** the owner's manual test and approval of PR #6. Owner's decision (2026-11-28): the macOS video trial (`b997c20` and later, off unless `JAIPLAYER_VIDEO_LAYER` is set, its native helper not packaged) stays in 1.12.0. DEV run 46158416875 (`881a024`, device results in [Audio codec compatibility](plan-audio-codecs.md)) predates it; with it, 77 desktop tests and the suite check pass locally. A DEV build of the head is needed before a tag. No merge, tag or release yet.
 
 ## Completion criteria
 
