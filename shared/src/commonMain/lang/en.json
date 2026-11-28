@@ -88,6 +88,8 @@
   "audio.preset.loud": "Loud and clear",
   "audio.preset.night": "Night mode",
   "audio.preset.vocal": "Vocal boost",
+  "audio.originalDesc": "Original audio (unchanged)",
+  "audio.passthroughDesc": "Passthrough (direct output)",
   "audio.preset.custom": "Custom",
   "audio.bass": "Bass",
   "audio.dialogue": "Dialogue",

@@ -88,6 +88,8 @@
   "audio.preset.loud": "तेज़ और साफ़",
   "audio.preset.night": "नाइट मोड",
   "audio.preset.vocal": "वोकल बूस्ट",
+  "audio.originalDesc": "मूल ऑडियो (बिना बदलाव वाला)",
+  "audio.passthroughDesc": "पासथ्रू (सीधा आउटपुट)",
   "audio.preset.custom": "कस्टम",
   "audio.bass": "बेस",
   "audio.dialogue": "डायलॉग",
