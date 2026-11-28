@@ -1,5 +1,6 @@
 # 2026-11-28
 
+* **Add**: [macOS playback](plan-macos-playback.md): Job 2 measured: P010 cuts app CPU on 4K 10-bit from 51 to 34 %; 16-bit planar from software decoding measured worse and was dropped.
 * **Update**: [Smooth playback](smoothness.md): VideoToolbox's 10-bit video stays 10-bit (P010) in the desktop frame path; 10-bit software decoding is converted to 8-bit as before, since 16-bit planar frames measured worse.
 * **Update**: [Progress](progress.md): DEV builds of run 46108381085, the playback optimization brief's Job 1 done.
 * **Update**: [Android playback CPU](plan-android-cpu.md): Phase 2 results: steps 1, 2 and 4 no measurable change (not kept), step 3 not done (it would silence a chosen effect until the next seek), step 5 kept (profileable release builds) with a trace showing an uncompiled fresh install; compiled, JaiPlayer equals MX's pipeline; rule: compile every player before comparing.
