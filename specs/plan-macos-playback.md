@@ -40,5 +40,27 @@ Two rounds each; all runs showed every frame, with no crash.
 - Colours: P010 of 3840 or 2160 and larger now uses BT.2020 weights (it used BT.709 before). There is still no HDR tone mapping; a 10-bit UHD video in BT.709 would be slightly off, since libVLC 3 does not report the colour space.
 - The test pattern is one kind of content; real films, Windows and Intel Macs are not measured.
 
+## Against VLC and IINA
+
+JaiPlayer DEV `63e650c` (CI build), VLC 3.0.24 and IINA 1.5.1 with their default settings, method as above (VLC and IINA have their own window chrome; video about 1280×720 in each). Files: 1080p60 H.264 10 Mb/s with AAC; Blu-ray style 1080p23.976 H.264 36 Mb/s with AC-3 5.1; 4K23.976 HEVC 10-bit HDR10-tagged 61 Mb/s with E-AC-3 5.1 (all test pattern). Clean runs only, 2 or 3 each; VLC on 4K has one.
+
+| File | Player | App CPU | Whole device | GPU | Memory | Sound starts after |
+|---|---|---|---|---|---|---|
+| 1080p60 | JaiPlayer | 30–32 % | 126–138 % | 28–31 % | 406–424 MB | 0.85–1.3 s |
+| | VLC | **12–13 %** | **98–121 %** | **5 %** | **174–188 MB** | 1.1–1.2 s |
+| | IINA | 27 % | 138–151 % | 60–62 % | 531–555 MB | **0.7–1.0 s** |
+| Blu-ray style | JaiPlayer | 18 % | 86–88 % | 13–15 % | 413–458 MB | 1.2–1.3 s |
+| | VLC | **9 %** | **76–82 %** | **1–3 %** | **175 MB** | 1.1 s |
+| | IINA | 13–14 % | 95–96 % | 28 % | 372–380 MB | **0.7 s** |
+| 4K HDR | JaiPlayer | 34–36 % | 118–126 % | 35–37 % | 592–667 MB | 1.2–1.6 s |
+| | VLC | **12 %** | **88 %** | **8 %** | **176–184 MB** | 1.1 s |
+| | IINA | 15–17 % | 98–119 % | 37–62 % | 574–695 MB | **0.7–0.9 s** |
+
+- **Size** (installed): JaiPlayer DEV 195 MB (dmg 83 MB), VLC 148 MB, IINA 197 MB; production 1.11.3 is 230 MB.
+- **Stability**: no crash and no exit in any run; JaiPlayer showed every frame in uncovered runs. Runs are about a minute each; there is no long soak or seek stress on the Mac.
+- **Picture**: on the HDR-tagged clip JaiPlayer's colours are paler than VLC's and IINA's: it has no HDR tone mapping. The clip is a synthetic pattern, so a real HDR film is still to be compared.
+- **Reading it**: VLC costs the least because it draws decoder frames itself, while JaiPlayer copies every frame into memory and uploads it to the GPU. JaiPlayer is level with IINA at 1080p60 and behind it on 4K and start time.
+- "Sound starts after" is the time from launch to the player's first power assertion for audio output, one method for all three. Power draw was too noisy to compare.
+
 ## Left for later
 - 4K 10-bit with subtitles needs about 1.6 GB of memory and twice the CPU of hardware decoding, because subtitles force software decoding. Drawing subtitles in the app over hardware-decoded frames would remove that, and is a larger change.
