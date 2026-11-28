@@ -154,11 +154,27 @@ the phone used 30–54 %.
   level with MX Player on the whole device. VLC costs 30–60 points less on the whole device at 1×,
   and drops frames at 1080p60. In JaiPlayer's runs `system_server` used 14–20 % against VLC's 8–10 %;
   where the rest of the gap goes is not yet profiled.
-- **5.1 AC-3 and E-AC-3 fail in JaiPlayer:** on this phone the Dolby decoder throws on the first
-  audio buffer (44.1 and 48 kHz) and JaiPlayer stops the whole video ("Can't play …"). VLC played
-  the AC-3 file; MX Player showed the E-AC-3 file's video. Found with generated files, not a real
-  disc rip; whether 1.11.3 fails too is not checked. JaiPlayer should fall back (another audio
-  decoder, or video without that track) instead of stopping.
+- **5.1 AC-3 and E-AC-3** stopped playback in this run; see below.
+
+## Dolby audio failure (Pixel 11)
+
+- **Existing limitation, not a regression:** production 1.11.3 (release APK) and DEV `63e650c` fail
+  the same way on AC-3 and E-AC-3 files: error state at position 0.
+- **Cause:** the phone's Dolby decoder (`c2.dolby.eac3.decoder`, build CD1A.261005.003) is created,
+  then its service cannot register the app's first input buffer (binder "Operation not permitted",
+  `registerSender` error 4), so `queueInputBuffer` throws. The failure is below the app; why other
+  players have sound was not traced (VLC has its own decoders).
+- **Why the video stopped:** ExoPlayer treats any renderer error as fatal for the whole player.
+- **Fix (`ae9c4a1`):** on an audio renderer error the Android engine prepares again at the same
+  position with another supported audio track, or with audio off, and says so on screen; video stays
+  on its decoder (`AudioFallback`). The same message shows when the device has no decoder for any
+  audio track.
+- **Checked:** `AudioFallbackTest` (6 tests; 62 desktop tests, none failing). Pixel 11, 90-second cuts
+  of Sintel: AC-3 and E-AC-3 play the picture with the message; an AC-3 + AAC file switches to AAC;
+  one recovered error each, no crash. Phone and Google TV emulators (API 36, no Dolby decoder):
+  the whole Sintel files, AC-3 and E-AC-3, play with the message (watched for about 30 seconds each).
+  The E-AC-3 file is a conversion of the AC-3 one, not an original. No real Google TV tested.
+- **Still open:** these files have no sound on the Pixel 11 (a decoder choice, P1-A).
 
 ## Next (Job 3 of the brief)
 
