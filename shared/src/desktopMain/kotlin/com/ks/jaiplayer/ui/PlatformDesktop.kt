@@ -2,6 +2,7 @@ package com.ks.jaiplayer.ui
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -20,6 +21,7 @@ import com.ks.jaiplayer.desktop.mediaRefOf
 import com.ks.jaiplayer.player.MediaRef
 import com.ks.jaiplayer.player.PlayerEngine
 import com.ks.jaiplayer.vlc.FrameStats
+import com.ks.jaiplayer.vlc.NativeVideoLayer
 import com.ks.jaiplayer.vlc.VideoColour
 import com.ks.jaiplayer.vlc.VideoFrames
 import com.ks.jaiplayer.vlc.VlcPlayerEngine
@@ -214,6 +216,15 @@ private fun matrixOf(layout: VideoFrames.Layout): FloatArray = when (layout.colo
 @Composable
 actual fun VideoSurface(engine: PlayerEngine, modifier: Modifier, fill: Boolean) {
     val frames = (engine as? VlcPlayerEngine)?.frames ?: return
+    if (NativeVideoLayer.enabled) {
+        // Trial only: the video is a native layer under the window; leave a see-through hole.
+        DisposableEffect(fill) {
+            NativeVideoLayer.show(visible = true, fill = fill)
+            onDispose { NativeVideoLayer.show(visible = false, fill = fill) }
+        }
+        Canvas(modifier) { drawRect(androidx.compose.ui.graphics.Color.Transparent, blendMode = androidx.compose.ui.graphics.BlendMode.Clear) }
+        return
+    }
     val paint = remember { Paint() }
     Canvas(modifier.clipToBounds()) {
         frames.version.longValue // Read while drawing: a new frame redraws, without recomposing.

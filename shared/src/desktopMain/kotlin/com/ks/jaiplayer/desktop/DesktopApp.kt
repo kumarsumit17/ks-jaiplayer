@@ -116,6 +116,8 @@ object ExternalOpen {
 /** Runs the desktop app (macOS or Windows): one window, the shared interface and a menu bar. */
 fun runDesktopApp(config: DesktopConfig) {
     com.ks.jaiplayer.vlc.FrameStats.mark("main")
+    // Native video layer trial only: Compose draws see-through so the layer under it shows.
+    if (com.ks.jaiplayer.vlc.NativeVideoLayer.route != null) System.setProperty("compose.interop.blending", "true")
     ExternalOpen.open(config.initialFiles)
     application {
         val engine = remember { VlcPlayerEngine.create(config.vlcLocations, config.vlcArgs, config.hardwareDecoding) }

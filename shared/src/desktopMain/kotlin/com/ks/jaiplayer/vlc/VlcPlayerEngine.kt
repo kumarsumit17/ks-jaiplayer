@@ -86,8 +86,12 @@ class VlcPlayerEngine private constructor(
                 _state.value = PlaybackState(error = PlayerError.EngineMissing)
                 return@launch
             }
-            lib.libvlc_video_set_format_callbacks(mp, frames.format, frames.cleanup)
-            lib.libvlc_video_set_callbacks(mp, frames.lockFrame, null, frames.display, null)
+            if (NativeVideoLayer.enabled) {
+                NativeVideoLayer.install(vlc!!.location, mp) // Trial only (specs/plan-macos-playback.md).
+            } else {
+                lib.libvlc_video_set_format_callbacks(mp, frames.format, frames.cleanup)
+                lib.libvlc_video_set_callbacks(mp, frames.lockFrame, null, frames.display, null)
+            }
             instance = inst
             player = mp
             applyEffects(lib, mp, audioOnly = false)
@@ -119,6 +123,7 @@ class VlcPlayerEngine private constructor(
             currentPath = path
             // HDR is tone-mapped by the surface, which needs the colours the file states.
             frames.colour = path?.let(VideoColour::read) ?: VideoColour.Unknown
+            if (NativeVideoLayer.enabled) NativeVideoLayer.setColour(frames.colour, path)
             val hardware = hardwareOption != null && path != null && !hasSubtitles(l, inst, path)
             if (path == null || !start(l, inst, mp, path, hardware, startMs = 0)) {
                 _state.update { it.copy(status = PlaybackStatus.Error, error = PlayerError.CannotOpen) }
@@ -358,7 +363,7 @@ class VlcPlayerEngine private constructor(
                         status = status,
                         positionMs = time,
                         durationMs = length,
-                        hasVideo = frames.width > 0,
+                        hasVideo = frames.width > 0 || (NativeVideoLayer.stats()?.get(3) ?: 0L) > 0,
                         error = when {
                             status != PlaybackStatus.Error -> it.error.takeIf { e -> e == PlayerError.EngineMissing }
                             everPlayed -> PlayerError.Playback
