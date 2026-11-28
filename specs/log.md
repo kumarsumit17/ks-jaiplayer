@@ -1,5 +1,6 @@
 # 2026-11-28
 
+* **Add**: [Android CPU optimization](plan-android-cpu.md): the owner's brief, the measurement method, the Pixel 11 baseline, what is ruled out and what is left of Phase 1.
 * **Update**: [DEV variant](dev-variant.md): the macOS DEV app claims video and audio files at rank Alternate like production, so Finder's Open With and `open -a` play the file (before, DEV started with no window).
 * **Update**: [Smooth playback](smoothness.md): Skia's GPU texture cache limited to 64 MB (187 to 237 MB less memory while playing on macOS). [Bundled libVLC](plan-bundled-vlc-and-plugins.md): 99 plugins the app never uses left out (194 kept), and the macOS app no longer carries the other chip's Skia library: the arm64 dmg goes from 103.4 to 80.5 MB.
 
