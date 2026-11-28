@@ -21,7 +21,7 @@ KS-Suite's release cycle ("DEV, test, approval, production" and "DEV and PROD si
 | Windows folders | `%APPDATA%\KS JaiPlayer`, `%LOCALAPPDATA%\KS JaiPlayer` | `… \KS JaiPlayer DEV` |
 | Desktop settings (`java.util.prefs`) | node `com/ks/jaiplayer` | node `com/ks/jaiplayer-dev` |
 | Single instance (Windows lock and port file) | in `%LOCALAPPDATA%\KS JaiPlayer` | in `%LOCALAPPDATA%\KS JaiPlayer DEV` |
-| Video and audio file types | claimed (Open With, double click) | not claimed, so DEV never becomes their default app |
+| Video and audio file types | claimed (Open With, double click); on macOS at rank Alternate | macOS: claimed at rank Alternate like production, so Open With and `open -a` work but DEV never becomes the default app; Windows: not claimed, so DEV never becomes their default app |
 | In-app updater | on (GitHub releases) | off: a DEV build never offers production files |
 | Version | from the tag | `-PksDevVersion=X.Y.Z-dev+sha7` (Android version name; the desktop installers keep X.Y.Z, which jpackage needs), files named `ks-jaiplayer-dev-<version>-<platform>.<ext>` |
 | Android signing | suite key (`ks-release`) | DEV keystore secrets `DEV_KEYSTORE_BASE64`, `DEV_KEYSTORE_PASSWORD`, `DEV_KEY_ALIAS`, `DEV_KEY_PASSWORD` (the owner creates them; `release.yml` passes all secrets) |

@@ -52,8 +52,9 @@ compose.desktop {
                 iconFile.set(project.file(if (dev) "packaging/icon-dev.icns" else "packaging/icon.icns"))
                 appCategory = "public.app-category.video"
                 infoPlist {
-                    // Only production claims video and audio files, so DEV never becomes their default app.
-                    if (!dev) extraKeysRawXml = file("packaging/document-types.plist").readText()
+                    // Video and audio files, at rank Alternate: listed in Open With, never the default
+                    // app unless the user picks it. DEV needs them too, or macOS hands it no files.
+                    extraKeysRawXml = file("packaging/document-types.plist").readText()
                 }
             }
         }
