@@ -71,18 +71,16 @@ private val yuv8ToRgb: RuntimeEffect by lazy {
 }
 
 /**
- * Turns a 16-bit-a-sample frame (10-bit planar or P010) into colour on the GPU. This Skia build
- * passes its 16-bit colour types to the native library as other types, so each plane is wrapped
- * as GRAY_8 bytes, twice as wide, read without filtering: the shader joins each sample's low and
- * high byte and filters bilinearly itself. [semi]: Cb and Cr interleaved in the cb plane (P010).
+ * Turns a P010 frame (10-bit, 16 bits a sample) into colour on the GPU. This Skia build passes
+ * its 16-bit colour types to the native library as other types, so each plane is wrapped as
+ * GRAY_8 bytes, twice as wide, read without filtering: the shader joins each sample's low and
+ * high byte and filters bilinearly itself.
  */
-private val yuv16ToRgb: RuntimeEffect by lazy {
+private val p010ToRgb: RuntimeEffect by lazy {
     RuntimeEffect.makeForShader(
         """
         uniform shader luma;
-        uniform shader cb;
-        uniform shader cr;
-        uniform float semi;
+        uniform shader chroma;
         uniform float2 lumaSize;
         uniform float2 chromaSize;
         uniform float4 range;
@@ -93,19 +91,11 @@ private val yuv16ToRgb: RuntimeEffect by lazy {
             float2 b = float2(i.x * 2.0 + 0.5, i.y + 0.5);
             return word(luma.eval(b).r, luma.eval(b + float2(1.0, 0.0)).r);
         }
-        float cbAt(float2 i) {
+        float2 chromaAt(float2 i) {
             i = clamp(i, float2(0.0), chromaSize - 1.0);
-            float2 b = float2(i.x * (semi > 0.5 ? 4.0 : 2.0) + 0.5, i.y + 0.5);
-            return word(cb.eval(b).r, cb.eval(b + float2(1.0, 0.0)).r);
-        }
-        float crAt(float2 i) {
-            i = clamp(i, float2(0.0), chromaSize - 1.0);
-            if (semi > 0.5) {
-                float2 b = float2(i.x * 4.0 + 2.5, i.y + 0.5);
-                return word(cb.eval(b).r, cb.eval(b + float2(1.0, 0.0)).r);
-            }
-            float2 b = float2(i.x * 2.0 + 0.5, i.y + 0.5);
-            return word(cr.eval(b).r, cr.eval(b + float2(1.0, 0.0)).r);
+            float2 b = float2(i.x * 4.0 + 0.5, i.y + 0.5);
+            return float2(word(chroma.eval(b).r, chroma.eval(b + float2(1.0, 0.0)).r),
+                          word(chroma.eval(b + float2(2.0, 0.0)).r, chroma.eval(b + float2(3.0, 0.0)).r));
         }
         half4 main(float2 p) {
             float2 t = p - 0.5;
@@ -116,13 +106,11 @@ private val yuv16ToRgb: RuntimeEffect by lazy {
             float2 ct = p * 0.5 - 0.5;
             float2 ci = floor(ct);
             float2 cf = ct - ci;
-            float uRaw = mix(mix(cbAt(ci), cbAt(ci + float2(1.0, 0.0)), cf.x),
-                             mix(cbAt(ci + float2(0.0, 1.0)), cbAt(ci + float2(1.0, 1.0)), cf.x), cf.y);
-            float vRaw = mix(mix(crAt(ci), crAt(ci + float2(1.0, 0.0)), cf.x),
-                             mix(crAt(ci + float2(0.0, 1.0)), crAt(ci + float2(1.0, 1.0)), cf.x), cf.y);
+            float2 c = mix(mix(chromaAt(ci), chromaAt(ci + float2(1.0, 0.0)), cf.x),
+                           mix(chromaAt(ci + float2(0.0, 1.0)), chromaAt(ci + float2(1.0, 1.0)), cf.x), cf.y);
             float y = (yRaw - range.x) * range.y;
-            float u = (uRaw - range.z) * range.w;
-            float v = (vRaw - range.z) * range.w;
+            float u = (c.x - range.z) * range.w;
+            float v = (c.y - range.z) * range.w;
             float3 rgb = float3(y + matrix.x * v, y - matrix.y * u - matrix.z * v, y + matrix.w * u);
             return half4(half3(saturate(rgb)), 1.0);
         }
@@ -131,10 +119,9 @@ private val yuv16ToRgb: RuntimeEffect by lazy {
 }
 
 /** Limited-range mapping (black, luma scale, chroma centre, chroma scale) for each layout. */
-private fun rangeOf(chroma: VideoFrames.Chroma): FloatArray = when {
-    !chroma.wide -> floatArrayOf(16f / 255f, 255f / 219f, 128f / 255f, 255f / 224f)
-    chroma.highBits -> floatArrayOf(4096f / 65535f, 65535f / (876f * 64f), 32768f / 65535f, 65535f / (896f * 64f))
-    else -> floatArrayOf(64f / 65535f, 65535f / 876f, 512f / 65535f, 65535f / 896f)
+private fun rangeOf(chroma: VideoFrames.Chroma): FloatArray = when (chroma) {
+    VideoFrames.Chroma.I420 -> floatArrayOf(16f / 255f, 255f / 219f, 128f / 255f, 255f / 224f)
+    VideoFrames.Chroma.P010 -> floatArrayOf(4096f / 65535f, 65535f / (876f * 64f), 32768f / 65535f, 65535f / (896f * 64f))
 }
 
 /**
@@ -143,7 +130,7 @@ private fun rangeOf(chroma: VideoFrames.Chroma): FloatArray = when {
  * 10-bit UHD is BT.2020, HD and larger BT.709, smaller BT.601.
  */
 private fun matrixOf(layout: VideoFrames.Layout): FloatArray = when {
-    layout.chroma.wide && (layout.width >= 3840 || layout.height >= 2160) -> floatArrayOf(1.4746f, 0.16455f, 0.57135f, 1.8814f)
+    layout.chroma == VideoFrames.Chroma.P010 && (layout.width >= 3840 || layout.height >= 2160) -> floatArrayOf(1.4746f, 0.16455f, 0.57135f, 1.8814f)
     layout.height >= 720 || layout.width >= 1280 -> floatArrayOf(1.5748f, 0.18732f, 0.46812f, 1.8556f)
     else -> floatArrayOf(1.402f, 0.34414f, 0.71414f, 1.772f)
 }
@@ -176,22 +163,23 @@ internal fun drawVideoFrame(canvas: org.jetbrains.skia.Canvas, frame: VideoFrame
     val h = l.height
     val base = Pointer.nativeValue(frame.memory)
     val c = l.chroma
-    // A 16-bit plane is wrapped as twice as many 8-bit bytes (see yuv16ToRgb).
-    val bytes = if (c.wide) 2 else 1
-    val chromaSamples = if (c.semiPlanar) 2 else 1
-    val planes = buildList {
-        add(plane(base, w * bytes, h, l.lumaPitch))
-        add(plane(base + l.uOffset, l.chromaWidth * chromaSamples * bytes, l.chromaHeight, l.chromaPitch))
-        if (!c.semiPlanar) add(plane(base + l.vOffset, l.chromaWidth * bytes, l.chromaHeight, l.chromaPitch))
+    val wide = c == VideoFrames.Chroma.P010
+    val planes = if (wide) {
+        // Twice as many 8-bit bytes (see p010ToRgb); the chroma plane holds both Cb and Cr.
+        listOf(plane(base, w * 2, h, l.lumaPitch), plane(base + l.uOffset, l.chromaWidth * 4, l.chromaHeight, l.chromaPitch))
+    } else {
+        listOf(
+            plane(base, w, h, l.lumaPitch),
+            plane(base + l.uOffset, l.chromaWidth, l.chromaHeight, l.chromaPitch),
+            plane(base + l.vOffset, l.chromaWidth, l.chromaHeight, l.chromaPitch),
+        )
     }
-    val builder = RuntimeShaderBuilder(if (c.wide) yuv16ToRgb else yuv8ToRgb)
-    val filter = if (c.wide) exact else sampling
+    val builder = RuntimeShaderBuilder(if (wide) p010ToRgb else yuv8ToRgb)
+    val filter = if (wide) exact else sampling
     val shaders = planes.map { it.second.makeShader(FilterTileMode.CLAMP, FilterTileMode.CLAMP, filter, null) }
-    builder.child("luma", shaders[0])
-    builder.child("cb", shaders[1])
-    builder.child("cr", shaders.getOrElse(2) { shaders[1] }) // Semi-planar: Cr is read from cb.
-    if (c.wide) {
-        builder.uniform("semi", if (c.semiPlanar) 1f else 0f)
+    val names = if (wide) listOf("luma", "chroma") else listOf("luma", "cb", "cr")
+    names.forEachIndexed { i, name -> builder.child(name, shaders[i]) }
+    if (wide) {
         builder.uniform("lumaSize", w.toFloat(), h.toFloat())
         builder.uniform("chromaSize", l.chromaWidth.toFloat(), l.chromaHeight.toFloat())
     }

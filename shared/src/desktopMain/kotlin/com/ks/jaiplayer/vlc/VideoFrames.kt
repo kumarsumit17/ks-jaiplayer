@@ -9,11 +9,11 @@ import com.sun.jna.Pointer
  * Receives decoded frames from libVLC's video callbacks and hands the newest one to the surface,
  * without copying it.
  *
- * Frames come in a YUV 4:2:0 layout close to the decoder's own ([Chroma]), so libVLC converts as
- * little as possible on the CPU: 10-bit video stays 10-bit (P010 from VideoToolbox, planar from
- * software decoding) instead of going through two software conversions to 8-bit, and 8-bit video
- * is I420. The surface turns YUV into colour on the GPU. Subtitles are already blended into the
- * planes (software decoding).
+ * Frames come in a YUV 4:2:0 layout ([Chroma]) that costs the device least: VideoToolbox's
+ * 10-bit pictures stay 10-bit (P010, a plain copy instead of two software conversions);
+ * everything else is 8-bit I420, 10-bit software decoding included, where converting down is
+ * cheaper than uploading frames twice the size (specs/smoothness.md). The surface turns YUV into
+ * colour on the GPU. Subtitles are already blended into the planes (software decoding).
  *
  * Three native buffers rotate: libVLC decodes into one, one holds the newest finished frame, and
  * one is on screen. The surface draws straight from the buffer's memory, and that buffer is not
@@ -23,45 +23,38 @@ import com.sun.jna.Pointer
  */
 internal class VideoFrames {
     /**
-     * The YUV 4:2:0 layouts asked of libVLC. [semiPlanar]: chroma interleaved in one plane
-     * (Cb Cr); [wide]: 16 bits a sample; [highBits]: the 10 bits sit in the top of the 16 (P010),
-     * else the bottom. There is no NV12: this Skia build cannot wrap an 8-bit two-channel plane,
-     * and VideoToolbox's 8-bit frames become I420 in the same copy libVLC makes anyway.
+     * The YUV 4:2:0 layouts asked of libVLC: planar 8-bit I420, or P010 (16 bits a sample with
+     * the 10 bits at the top, Cb and Cr interleaved in one plane). There is no NV12: this Skia
+     * build cannot wrap an 8-bit two-channel plane, and VideoToolbox's 8-bit frames become I420
+     * in the same copy libVLC makes anyway.
      */
-    enum class Chroma(val fourcc: String, val semiPlanar: Boolean, val wide: Boolean, val highBits: Boolean) {
-        I420("I420", semiPlanar = false, wide = false, highBits = false),
-        I0AL("I0AL", semiPlanar = false, wide = true, highBits = false),
-        P010("P010", semiPlanar = true, wide = true, highBits = true);
+    enum class Chroma(val fourcc: String, val bytesPerSample: Int, val planes: Int) {
+        I420("I420", bytesPerSample = 1, planes = 3),
+        P010("P010", bytesPerSample = 2, planes = 2);
 
         companion object {
             /**
              * The layout for the chroma libVLC proposes: VideoToolbox's 10-bit CoreVideo frames
-             * (`CVPP`) become P010 with a plain copy; software decoding keeps its 10-bit planar
-             * form. Everything else, VideoToolbox's 8-bit `CVPN` included, is I420, as before.
+             * (`CVPP`) become P010 with a plain copy; everything else is I420.
              */
-            fun forProposed(proposed: String): Chroma = when (proposed) {
-                "CVPP", "P010" -> P010
-                "I0AL", "I0AB", "I2AL", "I2AB", "I4AL", "I4AB" -> I0AL
-                else -> I420
-            }
+            fun forProposed(proposed: String): Chroma = if (proposed == "CVPP" || proposed == "P010") P010 else I420
         }
     }
 
     /** Where the planes of a frame lie in its buffer. */
     class Layout(val width: Int, val height: Int, val chroma: Chroma = Chroma.I420) {
-        private val bytesPerSample = if (chroma.wide) 2 else 1
         val chromaWidth = (width + 1) / 2
         val chromaHeight = (height + 1) / 2
-        val planes = if (chroma.semiPlanar) 2 else 3
-        val lumaPitch = align(width * bytesPerSample, 32)
-        /** Bytes a line of a chroma plane (both chroma samples for a semi-planar layout). */
-        val chromaPitch = align(chromaWidth * bytesPerSample * (if (chroma.semiPlanar) 2 else 1), 32)
+        val planes = chroma.planes
+        val lumaPitch = align(width * chroma.bytesPerSample, 32)
+        /** Bytes a line of a chroma plane (P010: both chroma samples). */
+        val chromaPitch = align(chromaWidth * chroma.bytesPerSample * (if (planes == 2) 2 else 1), 32)
         val lumaLines = align(height, 16)
         val chromaLines = lumaLines / 2
         val uOffset = lumaPitch.toLong() * lumaLines
-        /** The Cr plane; for a semi-planar layout there is none (Cr is beside Cb). */
+        /** The Cr plane; P010 has none (Cr is beside Cb). */
         val vOffset = uOffset + chromaPitch.toLong() * chromaLines
-        val bytes = if (chroma.semiPlanar) vOffset else vOffset + chromaPitch.toLong() * chromaLines
+        val bytes = if (planes == 2) vOffset else vOffset + chromaPitch.toLong() * chromaLines
 
         private fun align(value: Int, to: Int) = (value + to - 1) / to * to
     }

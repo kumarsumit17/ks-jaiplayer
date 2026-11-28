@@ -88,12 +88,8 @@ class VlcEngineIntegrationTest {
         val luma = frame.memory.getByteArray(0, l.lumaPitch * l.height)
         var n = 0
         for (y in l.height * 3 / 4 until l.height) for (x in 0 until l.width) {
-            // 8-bit value; a 16-bit sample (10-bit video) is read little-endian and scaled down.
-            val value = if (!l.chroma.wide) luma[y * l.lumaPitch + x].toInt() and 0xFF else {
-                val at = y * l.lumaPitch + x * 2
-                val word = (luma[at].toInt() and 0xFF) or ((luma[at + 1].toInt() and 0xFF) shl 8)
-                if (l.chroma.highBits) word shr 8 else word shr 2
-            }
+            // The test decodes in software, so frames are 8-bit I420.
+            val value = luma[y * l.lumaPitch + x].toInt() and 0xFF
             if (value > 220) n++
         }
         return n
