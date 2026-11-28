@@ -1,109 +1,93 @@
 ---
 type: Plan
-title: Android CPU optimization
-description: How JaiPlayer's CPU use during Android playback is measured, what has been ruled in or out, and what is left before any playback code changes.
+title: Android playback CPU
+description: How JaiPlayer's CPU use during Android playback is measured (whole device first), how it compares with other players, and what is ruled in or out.
 tags: [android, performance, battery, media3]
 ---
 
-# Android CPU optimization
+# Android playback CPU
 
-The owner's brief (2026-11-28): lower JaiPlayer's CPU use, battery drain and heat during Android playback
-without losing its low memory use, quality, features or stability, before any new heavy feature.
-Phase 1 measures and diagnoses only; playback code changes come after it, with the owner's go-ahead.
+Golden rule (the owner's brief "Playback Optimization and StreamFlix Readiness", 2026-11-28, which
+replaces the first CPU brief): optimize what the whole device spends, not which process the CPU is
+counted in.
 
-## Baseline (Pixel 11, Android 17, DEV 1.12.0-dev+fe14942)
+## Rule: compare players on the whole device
 
-| File | JaiPlayer | VLC | MX Player |
-|---|---|---|---|
-| 1080p60 H.264 | 49–50 %, 145 MB | 47–55 %, 159 MB | 11–17 %, 296–389 MB |
-| 4K30 HEVC 10-bit | 39 %, 145 MB | 28 %, 179 MB | 9 %, 285–295 MB |
+Never compare players with different architectures on app-process CPU alone. Media3 runs its whole
+pipeline inside the app; an app that plays through Android's MediaPlayer (MX Player) runs it in
+`mediaserver`, so its app process looks cheap while the device works as hard. Compare whole-device
+CPU, or the app plus the system media processes (`mediaserver`, the codec HAL `c2@…-service`,
+`media.swcodec`, surfaceflinger), always with the same file, device and method.
 
-## Method (used for every measurement)
+The first comparison broke this rule: "MX Player is about 4× more CPU-efficient" counted the app
+process only and was wrong. No app-only CPU targets apply.
 
-- CPU: `utime + stime` from `/proc/<pid>/stat` over 20 s, divided by CLK_TCK (100). **Percent of one
-  core**, app process only; work in the system codec and media processes is not counted. Per thread:
-  the same from `/proc/<pid>/task/*/stat`.
+## Comparison (Pixel 11, Android 17, 1080p60 H.264, 1×)
+
+| | Whole device | Player pipeline |
+|---|---|---|
+| JaiPlayer DEV 1.12.0-dev+fe14942 | 139 %, 151 % | about 52 %, all in the app (ExoPlayer runs in-process) |
+| MX Player | 157 %, 177 % (an ad's WebView about 12 % of it) | app about 11 % + `mediaserver` 34 % |
+
+The two are broadly level. Both spend the same outside the player: codec HAL 16 %, surfaceflinger
+15 %, `media.swcodec` (AAC) 6 %. The phone at rest: 29–31 %. VLC was not measured this way (its
+speed is set to 2× for all videos on that phone).
+
+## Method
+
+- **Whole device** (the comparison figure): busy time of all CPUs from the first line of `/proc/stat`
+  (total minus idle and iowait) over 20 s, divided by CLK_TCK (100): **percent of one core**, out of
+  700 % on the Pixel 11. The busiest processes in the same window from `top -b -n 2 -d 20 -s 9`.
+- **App and threads** (where JaiPlayer's own time goes): `utime + stime` from `/proc/<pid>/stat` and
+  `/proc/<pid>/task/*/stat` over 20 s, percent of one core.
 - Memory: TOTAL PSS from `dumpsys meminfo`.
-- Opened with `ACTION_VIEW` and an explicit package, from the start, controls hidden, 2 rounds,
-  sampled after 8 s of playback.
-- Build: the DEV APK is release-equivalent (R8, one `classes.dex`, baseline profile, not debuggable
-  or profileable). Method traces need a profileable build. A debug build costs more (57–70 % on the
-  same file), so it serves only for A/B tests against another debug build.
+- Files opened with `ACTION_VIEW`, an explicit package and `--grant-read-uri-permission` on a
+  MediaStore URI, from the start, controls hidden, 2 rounds, sampled after 8 s; phone charging,
+  other players stopped.
+- Builds: release-equivalent only (R8, not debuggable). The DEV 1.12.0 APK is (one minified
+  `classes.dex`, baseline profile). A debug build costs much more (57–70 % app on the same file)
+  and is never compared with a release build.
+
+## Decoders: hardware, confirmed by the codec's flags
+
+`dumpsys media.player` lists each codec's attributes, the ones behind
+`MediaCodecInfo.isHardwareAccelerated()` and `isSoftwareOnly()`:
+
+| Decoder | Used for | hw-accelerated | software-only | vendor |
+|---|---|---|---|---|
+| `c2.google.avc.decoder` | H.264 | 1 | 0 | 1 |
+| `c2.google.hevc.decoder` | HEVC, incl. 4K 10-bit | 1 | 0 | 1 |
+| `c2.android.hevc.decoder` (not used) | — | 0 | 1 | 0 |
+
+## JaiPlayer's own time (app process, % of one core)
+
+Not a comparison with other players; it shows where JaiPlayer spends its share.
+
+- 1080p60 H.264 at 1×: 49–52 %; 4K30 HEVC 10-bit: 39 %; PSS 145 MB.
+- Threads at 1080p60: ExoPlayer:Playback 10–15, MediaCodec_loop 8–11 + 4–5, CodecLooper 3–9,
+  binder threads about 2 each, main thread 3, RenderThread about 0: the Media3 and MediaCodec pipeline.
+- It follows the frames handled: at 0.5×, 1×, 2× and 4× (speed accurate to 0.5 %) the app uses
+  29, 46, 61 and 100 %. Whether that is worse than MX at 4× needs the whole-device method (Job 3).
 
 ## Ruled out, with evidence
 
-- Software H.264 decoding: the decoder is `c2.google.avc.decoder` (hardware, the one MX uses).
+- Software decoding: both decoders are hardware (table above).
 - Indirect rendering: video goes to a SurfaceView (`PlayerSurface`, `SURFACE_TYPE_SURFACE_VIEW`).
 - UI work per frame: gfxinfo shows 0 frames in 10 s with controls hidden; main thread 3 %,
   RenderThread about 0 %.
 - Position polling: one 250 ms refresh on the main thread, inside that 3 %.
-- Media3 dynamic scheduling (`experimentalSetDynamicSchedulingEnabled`): no change, 57–65 % with and
-  without it in alternating debug builds; not kept.
+- Media3 dynamic scheduling alone (`experimentalSetDynamicSchedulingEnabled`): no change, 57–65 %
+  with and without it in alternating debug builds.
 
-## Where the time goes (DEV, 1080p60, % of one core)
+## Decisions
 
-ExoPlayer:Playback 10–15, MediaCodec_loop 8–11 + 4–5, CodecLooper 3–9, binder threads about 2 each:
-the Media3 and MediaCodec pipeline, about 36–50 % in all.
+- Media3 ExoPlayer stays the Android and Google TV engine; Android's MediaPlayer only moves CPU into
+  a system process and gives up control over streaming, tracks and speed.
+- One playback engine per platform.
+- The automatic landscape orientation stays as it is (a separate decision).
 
-CPU follows the number of frames handled: at playback speed 0.5×, 1×, 2× and 4× (speed accurate
-to 0.5 %) the app uses 29, 46, 61 and 100 %. So the cost is per decoded frame, in the pipeline,
-not a fixed overhead.
+## Next (Job 3 of the brief)
 
-## Whole device: the app-only figure misleads
-
-Busy time of all CPUs from `/proc/stat` over 20 s (% of one core), and `top` for the busiest
-processes in the same window; 1080p60 H.264, 1×, phone charging, 2 rounds. At rest the phone uses 29–31 %.
-
-| | Whole device | Player pipeline |
-|---|---|---|
-| JaiPlayer DEV | 139 %, 151 % | app 52 % (Media3 runs in the app) |
-| MX Player | 177 % (an ad's WebView 12 % in it), 157 % | app 11 % + `mediaserver` 34 % |
-
-Both: codec HAL `c2@3.0-service` 16 %, surfaceflinger 15 %, `media.swcodec` (AAC) 6 %.
-MX plays through Android's MediaPlayer, whose pipeline runs in `mediaserver`, which an app-only
-measurement leaves out. Counted in full, JaiPlayer uses about the same CPU as MX (pipeline 52
-against 45 %), not 4×. What is left to win is the gap of about 7 points, and the per-frame cost at
-high speeds.
-
-4K30 HEVC 10-bit decodes in hardware too (`c2.google.hevc.decoder`).
-
-## Open
-
-- [x] Whole-device CPU against MX Player (above). VLC not repeated: its speed is set to 2× for all videos.
-- [x] Decoder for 4K HEVC 10-bit: hardware.
-- [ ] Audio processing: `EffectsAudioProcessor` copies every PCM sample even with no effect on.
-      For 48 kHz stereo that is 192 KB/s, far below what the measurement can show; not measured.
-      Bypassing it when no effect is active is cheap to do and safe.
-- [ ] Controls visible against hidden; dropped frames.
-- [ ] Cost inside the Media3 pipeline itself (the brief's last suspect): method trace of
-      ExoPlayer:Playback with a profileable build.
-
-## Phase 2: fixes (proposed, waiting for the owner's approval)
-
-Target: JaiPlayer's playback work at or below MX's (about 45 % of one core at 1080p60 1×, from
-52 %), and well under one core at 4× (100 % today), with memory, quality, features and stability
-unchanged. Each step is one change, A/B tested on the Pixel 11 with the method above (whole
-device and app, 1× and 4×, 2 rounds, DEV-equivalent release builds), and kept only if it wins and
-nothing gets worse. Phone and Google TV share the engine, so a kept change is checked on both.
-
-1. **Let the playback thread sleep.** Media3's dynamic scheduling together with
-   `DefaultRenderersFactory.setEnableMediaCodecVideoRendererDurationToProgressUs(true)`, so the video
-   renderer tells the loop when it next has work. Dynamic scheduling alone did nothing, likely
-   because no renderer reported that time.
-2. **Speed change in the system, not in the app.** `setEnableAudioTrackPlaybackParams(true)`: Android's
-   AudioTrack changes the speed instead of Media3's Sonic stretching on the playback thread, which
-   grows with speed. Check: pitch kept, the audio effects still apply (they run before the speed
-   change), seeking and 0.5–4× accuracy unchanged, and fallback on devices without support.
-3. **No audio work when no effect is on.** `EffectsAudioProcessor` turns itself off (inactive) when
-   no effect is chosen, and back on when one is, without a gap in the sound.
-4. **High speeds.** `experimentalSetLateThresholdToDropDecoderInputUs`: at 2× and 4× skip frames that
-   would be shown too late anyway, instead of decoding them; check the picture still moves smoothly.
-5. **Find the rest with a trace.** A profileable release build (`<profileable android:shell="true"/>`,
-   which Google allows in production and which does not slow the app) so Perfetto can sample the
-   playback thread's methods; only if 1–4 leave a gap. Needs the owner's decision, since it goes into
-   production builds too.
-6. **Battery and heat.** Before and after: `dumpsys batterystats` per-app power estimate and the
-   device temperature over a 10-minute playback.
-
-Each kept change: a commit on `dev`, the tests, a DEV build, the owner's hand test, then a release
-with the owner's approval (the suite's release cycle).
+Measure JaiPlayer and MX Player at 4× on the Pixel 11 with the whole-device method (device, app,
+`mediaserver`), report, and continue to profiling and fixes only if JaiPlayer is meaningfully worse
+or a profile shows clear waste. The first brief's Phase 2 (six proposed fixes) is replaced by this.
