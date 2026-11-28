@@ -1,5 +1,6 @@
 # 2026-11-28
 
+* **Update**: [Playback plan](plan-playback.md): the owner's player principles (platform hardware path first, no CPU/GPU frame copies, custom paths only for a measured reason).
 * **Update**: [Playback plan](plan-playback.md), [Progress](progress.md): the owner's completion criteria, tracked as open or done; phase P2-M added.
 * **Update**: [Android playback CPU](plan-android-cpu.md): the Pixel 11 Dolby failure (cause, also in 1.11.3) and the fix that keeps the video playing.
 * **Add**: [Playback plan](plan-playback.md): the owner-approved phases and gates, P0 started (Android Dolby audio, macOS HDR colour); it replaces the playback optimization brief.

@@ -26,6 +26,14 @@ CPU](plan-android-cpu.md) and [macOS playback](plan-macos-playback.md).
   (outside the repository): Blender's Sintel 1080p with AC-3 5.1 (15 minutes, MD5 checked), an E-AC-3
   copy made from it, and Jellyfin's 30-second 1080p and 4K HEVC HDR10 clips.
 
+## Player principles
+
+The owner's, for KS JaiPlayer only (2026-11-28; not suite rules):
+
+- Prefer each platform's own hardware-accelerated playback path.
+- Avoid copying or converting video frames between CPU and GPU.
+- A custom path needs a measured reason.
+
 ## Completion criteria
 
 Owner's update, 2026-11-28: JaiPlayer is completed and released before any Streamflix work.
