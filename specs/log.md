@@ -1,5 +1,6 @@
 # 2026-11-28
 
+* **Update**: [macOS playback](plan-macos-playback.md): native video layer and true HDR trial (routes A AVSampleBufferDisplayLayer, B Metal EDR layer, C libVLC caopengllayer): measurements, checks, go/no-go, route A recommended; true HDR not measurable on this Mac's display.
 * **Update**: [Audio codec compatibility](plan-audio-codecs.md), [Third-party licences](licences.md), [Module layout](module-layout.md): AC-3 and E-AC-3 software decoder added in `:shared:ffmpeg` (new dependency: FFmpeg 6.0.1 source, built here, LGPL-2.1; no new Maven artifact, `media3-decoder` already comes with ExoPlayer). Needed because some devices have no working Dolby decoder; adds 0.66 MB per processor type.
 * **Add**: [Audio codec compatibility](plan-audio-codecs.md): P1-A matrix (8 codecs, Pixel 11, emulators, macOS), options and recommendation.
 * **Update**: [macOS playback](plan-macos-playback.md), [Smooth playback](smoothness.md), [Playback plan](plan-playback.md), [Progress](progress.md): HDR to SDR tone mapping on desktop (P0-B): cause, colour test, comparison with VLC, cost, and what true HDR output needs.

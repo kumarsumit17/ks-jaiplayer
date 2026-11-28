@@ -1,7 +1,7 @@
 ---
 type: Plan
 title: macOS playback
-description: How JaiPlayer's playback cost on macOS is measured, and the results of Job 2 of the playback optimization brief (10-bit frame path).
+description: How JaiPlayer's playback cost on macOS is measured, the results of Job 2 of the playback optimization brief (10-bit frame path), and the native video layer and true HDR trial.
 tags: [macos, performance, playback, libvlc]
 ---
 
@@ -82,6 +82,54 @@ JaiPlayer DEV `63e650c` (CI build), VLC 3.0.24 and IINA 1.5.1 with their default
   Interleaved 4K round: whole Mac 113–114 % before, 110–111 % after. No difference beyond noise; 1080p GPU about 3 points higher.
 - **Limits:** a file whose container states no colours (some MP4s, http streams) still shows the old picture; the HEVC bitstream's own colour description is not read. The clips are synthetic patterns; real HDR films are not tested. Windows not tested (same shader).
 - **True HDR output (not built):** IINA sends HDR to the display (EDR). JaiPlayer would need an extended-range drawing surface: a `CAMetalLayer` with `wantsExtendedDynamicRangeContent`, a linear or PQ colour space and a half-float pixel format, with tone mapping only to the display's current EDR headroom (`NSScreen.maximumExtendedDynamicRangeColorComponentValue`). Compose's Skia surface is 8-bit sRGB, so this belongs with the native video view trial (P1-C); on Windows it needs a DXGI HDR10 swap chain.
+
+## Native video layer trial (2026-11-28)
+
+Owner-approved feasibility trial: show video without the app copying, converting and uploading every frame, and show true HDR. Trial code only, off unless `JAIPLAYER_VIDEO_LAYER` is set, never in an installer: `desktop/mac/trial/JaiVideoLayer.m` (Apple APIs only, built by its `build.sh`, 83 KB for arm64) and `vlc/NativeVideoLayer.kt`. libVLC 3 stays; IINA was used only as a behaviour reference. Each route puts a native layer directly under Compose's drawing layer (`compose.interop.blending` makes Compose see-through, and the video surface clears a hole); libVLC's video callbacks are C functions in the helper, so the JVM does nothing per frame.
+
+- **A, `avsb`:** libVLC writes each frame into an IOSurface-backed `CVPixelBuffer` (P010 for 10-bit, NV12 for 8-bit). The buffer is tagged with the file's primaries, transfer, matrix and MP4 `mdcv`/`clli`, and an `AVSampleBufferDisplayLayer` shows it. macOS does the YUV conversion, HDR (EDR) and tone mapping.
+- **B, `metal`:** the same buffers as Metal textures (no copy) go through our YUV shader onto a `CAMetalLayer`. For HDR the layer is RGBA16Float with `wantsExtendedDynamicRangeContent`, a BT.2100 PQ or HLG colour space and `CAEDRMetadata` (HDR10 from the file's metadata, or HLG), so macOS maps to the headroom.
+- **C, `vout`:** libVLC's own `caopengllayer` output with `glconv_cvpx` draws VideoToolbox frames itself (no copy at all). VLC 3.0.24 hands over an NSView; the trial moves its layer under Compose, keeps the view's size in step with the window, and answers the view's backing-scale questions for Retina. The bundled libVLC lacks those plugins, so C ran on VLC.app 3.0.24's libVLC (`JAIPLAYER_VLC_PATH`).
+
+**Measured** (MacBook M5 on mains power and charging, so no battery drain; method and files as above; 2 alternating rounds each; same app image with and without the flag):
+
+| File | Path | App CPU | GPU | WindowServer | Memory |
+|---|---|---|---|---|---|
+| 4K HDR10 60 fps | today | 47–57 % | 46–56 % | 18–30 % | 620–653 MB |
+| | A | 33–35 % | **2 %** | 16–17 % | 631–675 MB |
+| | B | 36–37 % | 10–12 % | 20–25 % | 837–861 MB |
+| | C | **21–22 %** | 13–16 % | 10–14 % | **531–540 MB** |
+| 1080p HDR10 60 fps | today | 32–33 % | 35 % | 16 % | 477–485 MB |
+| | A | 18 % | **2 %** | 17 % | 470–500 MB |
+| | B | 20–21 % | 7–8 % | 20 % | 524–545 MB |
+| | C | **15–16 %** | 11–24 % | 10–25 % | 511–548 MB |
+| Sintel 1080p SDR 24 fps | today | 18 % | 4 % | 10 % | 456–470 MB |
+| | A | **12 %** | **2 %** | 12 % | 438–459 MB |
+| | B | 13 % | 3–4 % | 9 % | 467–481 MB |
+| | C | 12–14 % | 7–14 % | 11–21 % | 482–499 MB |
+
+- **Frames:** every run showed every decoded frame (A and B), and C lost none at 1×. Time to first picture: today 0.96–1.00 s, A 0.96–0.98 s, B 0.97–1.07 s, C 1.65–1.85 s (VLC.app's larger plugin set loads more slowly; libVLC is ready after 1.1–1.3 s instead of 0.7 s). Whole-Mac CPU was too noisy this session to rank (other apps ran).
+- **Speed, seek and pause** (`JAIPLAYER_TRIAL_STEPS`, 24, 30 and 60 fps files): 0.25× to 4× play with frame intervals steady (standard deviation under 2 ms at 1×, 2× and 4×), and seek, pause and resume work in all three routes. At 4× on 60 fps, A hands the layer 233 frames a second and B 118 (more than the screen shows: a full build should drop to the display rate); 4K software decoding tops out at 53 fps in both.
+- **Under the controls:** the controls, title and seek bar draw over the video in all routes, and embedded text subtitles show (libVLC blends them in A and B; C draws them itself). Resize and full screen follow the window in all routes. Clicking the controls, image subtitles (PGS) and moving between displays were not tried (one display, and no window-control approval during the run).
+- **Covered or minimized:** playback goes on in all routes. A stops drawing like today's path (WindowServer 4 %, GPU 5 %). B keeps rendering (GPU 12 %) until it watches occlusion. C partly (WindowServer 25 %).
+- **Colour, 1080p HDR10** (mean of non-black pixels in sRGB, saturation as mean channel spread; frames a few seconds apart): QuickTime (107, 89, 201) spread 118, A (131, 81, 197) 116, B (142, 77, 194) 117. Both match QuickTime's saturation, so macOS's own tone mapping is used. C (108, 76, 166) 90 matches VLC (116, 73, 165) 92, since it is VLC's tone mapping. Today's shader gives (113, 83, 154) 71. A file without colour information gets today's guess (10-bit UHD BT.2020, HD BT.709) in A and B. In B an untagged SDR file looks lighter than in A (its SDR colour space needs fixing).
+- **True HDR not measurable here:** this Mac's built-in Liquid Retina is not an XDR display. Its EDR headroom is 2.0 at most and stayed at 1.0 during playback, so A and B showed tone-mapped SDR. The comparison with IINA and QuickTime by eye on an HDR display, and the 20-minute real 4K HDR film (no film folder named yet), remain.
+- **Picture-in-Picture:** A can use the system's (`AVPictureInPictureController` with a sample-buffer content source, macOS 12+); B and C have none built in.
+- **Unchanged by construction:** audio effects and presets (no audio code touched). http and HLS: the desktop engine still opens only local files, a separate item (P2) that no route changes.
+
+**Go / no-go:** A **go** (lowest GPU, app CPU 30–45 % lower, same start, macOS HDR and tone mapping, system PiP, stops drawing when hidden, bundled libVLC unchanged). B **go as a fallback** only if the tone mapping must be our own: more memory, keeps drawing when hidden. C **no-go**: least CPU and memory, but SDR only (libVLC 3 has no EDR output), and it needs extra libVLC plugins (caopengllayer, glconv_cvpx, OpenGL, which Apple has deprecated). It also needs fragile workarounds (moving a view's layer, Retina override), slower start-up, and no fill mode.
+
+**Recommended:** route A for SDR and HDR alike. What remains copied is libVLC's one copy of each VideoToolbox frame into the IOSurface (no conversion, no upload). Removing that too would need libVLC 4 or a decoder of our own.
+
+**Full implementation, size and risk** (about 1–2 weeks):
+- Build the helper in packaging (xcrun clang on the macOS runner), or call the Objective-C runtime through JNA to avoid a native build.
+- Read Matroska HDR metadata.
+- Drop frames above the display rate.
+- Add fill mode and PiP.
+- Keep Compose's see-through mode working: `compose.interop.blending` is experimental, and the layer is found by Skiko's class name `AWTMetalLayer`. Compose updates could break this; a test that checks the layer tree would catch it.
+- The current shader path stays as the fallback and for Windows.
+
+**Windows:** what carries over is the flag, the see-through hole in Compose, reading colours and HDR metadata, and the step script. The native part does not: a D3D11 swap chain under the window (`SetColorSpace1` and `SetHDRMetaData` for HDR10, or DirectComposition) plays A's role. libVLC 3's own direct3d11 output in a child window would play C's, and on Windows that one can send HDR.
 
 ## Left for later
 - 4K 10-bit with subtitles needs about 1.6 GB of memory and twice the CPU of hardware decoding, because subtitles force software decoding. Drawing subtitles in the app over hardware-decoded frames would remove that, and is a larger change.

@@ -32,7 +32,7 @@ From the [Playback plan](plan-playback.md).
 |---|---|---|---|
 | 1 | HDR colour correct | open | Desktop tone mapping done, close to VLC; files without colour metadata, real HDR films, Windows still open ([macOS](plan-macos-playback.md)) |
 | 2 | AC-3/E-AC-3 resolved, codec matrix validated | open | Video no longer stops (`ae9c4a1`); [matrix](plan-audio-codecs.md) made on Pixel 11, emulators and macOS (Windows, real TV open); no AC-3/E-AC-3 sound on Android yet (Gate 2) |
-| 3 | Native video view trial and approved solution | open | Not started (P1-C) |
+| 3 | Native video view trial and approved solution | open | macOS trial done, route A (AVSampleBufferDisplayLayer) recommended, waits for the owner's approval ([macOS](plan-macos-playback.md)) |
 | 4 | CPU, GPU, memory, battery optimized from measurements | open | Part: [macOS](plan-macos-playback.md), [Android](plan-android-cpu.md); battery not proven |
 | 5 | Android 4× investigation | open | Not started (P1-D) |
 | 6 | Audio enhancement presets validated | open | Automated tests and emulator only; owner listening test pending |
