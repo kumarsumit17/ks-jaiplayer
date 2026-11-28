@@ -31,6 +31,30 @@ class AudioFallbackTest {
     }
 
     @Test
+    fun theSoftwareDecoderComesBeforeAnotherTrack() {
+        // The Pixel case: the platform's AC-3 decoder exists but fails; the same track goes on in software.
+        val tracks = listOf("ac3", "aac")
+        assertEquals(AudioFallback.Next.SoftwareDecoder, fallback.after("ac3", tracks, hasVideo = true, softwareDecoder = true))
+        // The software decoder failing too: then another track, then the picture alone.
+        assertEquals(AudioFallback.Next.Track("aac"), fallback.after("ac3", tracks, hasVideo = true, softwareDecoder = true))
+        assertEquals(AudioFallback.Next.PictureOnly, fallback.after("aac", tracks, hasVideo = true))
+    }
+
+    @Test
+    fun withoutASoftwareDecoderTheOrderIsUnchanged() {
+        // DTS and TrueHD: no software decoder in the app.
+        assertEquals(AudioFallback.Next.PictureOnly, fallback.after("dts", listOf("dts"), hasVideo = true, softwareDecoder = false))
+    }
+
+    @Test
+    fun theSoftwareDecoderIsTriedOncePerTrackPerFile() {
+        assertEquals(AudioFallback.Next.SoftwareDecoder, fallback.after("eac3", listOf("eac3"), hasVideo = true, softwareDecoder = true))
+        assertEquals(AudioFallback.Next.PictureOnly, fallback.after("eac3", listOf("eac3"), hasVideo = true, softwareDecoder = true))
+        fallback.reset()
+        assertEquals(AudioFallback.Next.SoftwareDecoder, fallback.after("eac3", listOf("eac3"), hasVideo = true, softwareDecoder = true))
+    }
+
+    @Test
     fun soundOnlyMediaWithNothingLeftStops() {
         assertEquals(AudioFallback.Next.Stop, fallback.after("ac3", listOf("ac3"), hasVideo = false))
     }

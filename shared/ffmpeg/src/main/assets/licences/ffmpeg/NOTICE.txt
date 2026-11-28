@@ -1,0 +1,15 @@
+KS JaiPlayer for Android and Google TV includes FFmpeg's AC-3 and E-AC-3 audio decoders.
+
+FFmpeg 6.0.1 (https://ffmpeg.org), licensed under the GNU Lesser General Public License 2.1
+(COPYING.LGPLv2.1 beside this file). It is built as an LGPL library (no --enable-gpl, no
+--enable-nonfree), with only the ac3 and eac3 decoders, libavutil and libswresample, and linked
+into libffmpegJNI.so.
+
+Source: https://ffmpeg.org/releases/ffmpeg-6.0.1.tar.xz
+(SHA-256 9b16b8731d78e596b4be0d720428ca42df642bb2d78342881ff7f5bc29fc9623), unmodified.
+How it is built, with every configure option: shared/ffmpeg/build-ffmpeg.sh in
+https://github.com/kumasumit/ks-jaiplayer. You may rebuild the library from that source and
+replace libffmpegJNI.so in the app.
+
+The JNI wrapper and the Kotlin classes around it come from AndroidX Media3's FFmpeg extension
+(Apache License 2.0, Copyright The Android Open Source Project), changed for KS JaiPlayer.

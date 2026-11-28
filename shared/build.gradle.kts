@@ -63,6 +63,8 @@ kotlin {
             implementation(libs.ks.utility)
             implementation(libs.androidx.activity.compose)
             implementation(libs.media3.exoplayer)
+            // AC-3 and E-AC-3 when the device has no working decoder (specs/plan-audio-codecs.md).
+            implementation(project(":shared:ffmpeg"))
             implementation(libs.media3.ui.compose)
             implementation(libs.media3.session)
             implementation(libs.androidx.tvprovider)

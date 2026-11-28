@@ -79,12 +79,15 @@ val devVariant = providers.gradleProperty("ksVariant").orNull == "dev"
 val androidCompileSdk = libs.versions.androidCompileSdk.get().toInt()
 val androidMinSdk = libs.versions.androidMinSdk.get().toInt()
 val androidTargetSdk = libs.versions.androidTargetSdk.get().toInt()
+val androidNdk = libs.versions.androidNdk.get()
 
 subprojects {
     plugins.withId("com.android.application") {
         val tv = path == ":tv:google-tv"
         extensions.configure<com.android.build.api.dsl.ApplicationExtension> {
             compileSdk = androidCompileSdk
+            // The NDK that built shared/ffmpeg also strips its library when packaging.
+            ndkVersion = androidNdk
             defaultConfig {
                 applicationId = "com.ks.jaiplayer"
                 minSdk = androidMinSdk

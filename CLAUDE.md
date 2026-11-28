@@ -21,6 +21,7 @@ Multi-platform media player for Android, Google TV, Windows, and macOS.
 | | `shared/src/jvmSharedMain` | JVM code for desktop and Android: app updates (ks-utility) |
 | | `shared/src/desktopMain` | libVLC engine (JNA), video surface, desktop app runner |
 | | `shared/src/androidMain` | Media3 ExoPlayer engine, video surface, and everything both Android apps run: the activity, manifest, pickers, picture-in-picture, updates |
+| `:shared:ffmpeg` | `shared/ffmpeg/` | Android: FFmpeg AC-3/E-AC-3 decoders, built from source (LGPL, `specs/licences.md`) |
 | `:desktop:mac` | `desktop/mac/` | macOS entry point (menu bar, Finder Open With), dmg with bundled libVLC |
 | `:desktop:windows` | `desktop/windows/` | Windows entry point, msi with bundled libVLC |
 | `:mobile:android` | `mobile/android/` | The phone app (APK + AAB): phone launcher entry |

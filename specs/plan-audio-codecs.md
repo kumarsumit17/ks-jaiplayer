@@ -52,6 +52,15 @@ decoded and played audio buffers with none lost). The video plays in every case.
 Not considered: a complete multimedia engine (libVLC or full FFmpeg on Android), excluded by the
 plan.
 
+## Decision and build (2026-11-28)
+
+The owner chose option 3 for **AC-3 and E-AC-3 only**, in 1.12.0 (no DTS or TrueHD).
+
+- **Module** `:shared:ffmpeg`: FFmpeg 6.0.1 built from the pinned release (LGPL, `--disable-everything` plus `ac3`, `eac3`, `--enable-small`), Media3's JNI wrapper, and its Java classes ported to Kotlin. NDK r27d (27.3.13750724) and CMake 3.22.1, named in the version catalog.
+- **Order at playback:** the platform's decoder, or passthrough where the output takes the format (Media3's renderer picks it first); then FFmpeg. A platform decoder that exists but fails is left out for that Android build (`BrokenDecoders`), the player prepares again and FFmpeg takes the same track; if FFmpeg fails too, another track, then the picture alone (`AudioFallback`).
+- **Size** (release APK against DEV `b9d0bd4`): arm64 +0.66 MB (library 650,904 bytes), armeabi-v7a +0.53 MB, licence files 10 KB. Universal APK 2.00 to 3.18 MB (+1.18 MB); the library is stored uncompressed, so a sideloaded install grows by the same, a per-processor Play install by about 0.7 MB. Under the 2 MB-per-processor limit.
+- **Tests:** `AudioFallbackTest` covers the order (9 tests).
+
 ## Recommendation (for Gate 2)
 
 Option 3, with option 2 kept as it is:

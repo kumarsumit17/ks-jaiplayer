@@ -1,5 +1,6 @@
 # 2026-11-28
 
+* **Update**: [Audio codec compatibility](plan-audio-codecs.md), [Third-party licences](licences.md), [Module layout](module-layout.md): AC-3 and E-AC-3 software decoder added in `:shared:ffmpeg` (new dependency: FFmpeg 6.0.1 source, built here, LGPL-2.1; no new Maven artifact, `media3-decoder` already comes with ExoPlayer). Needed because some devices have no working Dolby decoder; adds 0.66 MB per processor type.
 * **Add**: [Audio codec compatibility](plan-audio-codecs.md): P1-A matrix (8 codecs, Pixel 11, emulators, macOS), options and recommendation.
 * **Update**: [macOS playback](plan-macos-playback.md), [Smooth playback](smoothness.md), [Playback plan](plan-playback.md), [Progress](progress.md): HDR to SDR tone mapping on desktop (P0-B): cause, colour test, comparison with VLC, cost, and what true HDR output needs.
 * **Update**: [Playback plan](plan-playback.md): the owner's player principles (platform hardware path first, no CPU/GPU frame copies, custom paths only for a measured reason).

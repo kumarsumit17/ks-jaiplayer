@@ -22,7 +22,7 @@ Updated 2026-11-28. KS JaiPlayer is the suite's active app ([KS-Suite progress](
 - **Owner:** manual test of the DEV builds (side by side, every audio preset per platform, Windows and real devices); approval in the pull request. Recommended: Dependabot alerts on.
 - **Release pull request:** `dev` → `main`, open, waiting for the owner's test and approval (link in the KS-Suite progress row).
 - **Release candidate tested (2026-11-28):** run 46152779805 on Mac and Pixel 11, DEV beside 1.11.3: 1080p film, AC-3 with and without a second track, 4K HDR colour, subtitles, all 9 presets, seek, pause, speed pass; http plays on Android; desktop cannot open http links (as in 1.11.3, for P2). Details in PR #6.
-- **Next action:** wait for the owner's manual test and decision on PR #6. No further changes on `dev` until then. Handoff for ks-utility: tag its 5 `dev` commits (approved Hindi audio glossary, never-backwards pin move); the bump moved this app's pin back from that `dev` commit to v0.19.0.
+- **Next action:** AC-3/E-AC-3 software decoder (owner, 2026-11-28): code and size done (+0.66 MB arm64, +0.53 MB armeabi-v7a); next the DEV build, the device tests and PR #6. Then the macOS native video and HDR trial. No merge, tag or release.
 
 ## Completion criteria
 

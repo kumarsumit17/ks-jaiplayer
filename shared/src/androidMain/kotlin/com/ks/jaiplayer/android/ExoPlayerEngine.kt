@@ -2,6 +2,7 @@ package com.ks.jaiplayer.android
 
 import android.content.Context
 import android.net.Uri
+import android.os.Handler
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -17,11 +18,18 @@ import androidx.media3.common.util.Util
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlaybackException
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.Renderer
+import androidx.media3.exoplayer.audio.AudioRendererEventListener
+import androidx.media3.exoplayer.mediacodec.MediaCodecDecoderException
+import androidx.media3.exoplayer.mediacodec.MediaCodecRenderer
+import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
 import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.exoplayer.audio.AudioSink
 import androidx.media3.exoplayer.audio.DefaultAudioSink
 import com.ks.jaiplayer.audio.AudioChain
 import com.ks.jaiplayer.audio.AudioSupport
+import com.ks.jaiplayer.ffmpeg.FfmpegAudioRenderer
+import com.ks.jaiplayer.ffmpeg.FfmpegLibrary
 import com.ks.jaiplayer.player.AudioFallback
 import com.ks.jaiplayer.player.AudioNotice
 import com.ks.jaiplayer.player.MediaRef
@@ -45,7 +53,10 @@ import kotlinx.coroutines.launch
 
 /**
  * The Android and Google TV engine: Media3 ExoPlayer with the device's hardware decoders. When a
- * decoder fails, the next one for the format is tried; audio that still cannot be decoded gives way to
+ * decoder fails, the next one for the format is tried. Audio uses the platform's decoder, or
+ * passthrough to a TV or receiver when the output takes the encoded format (Media3 prefers it),
+ * then the app's FFmpeg decoder for AC-3 and E-AC-3 ([FfmpegAudioRenderer]), also when a platform
+ * decoder exists but fails ([BrokenDecoders]); audio that still cannot be decoded gives way to
  * another audio track, or to the picture alone ([AudioFallback]). It takes audio focus (pauses for a call or
  * another player, lowers its volume for a notification) and pauses when headphones are unplugged.
  * Every call must come from the main thread, as ExoPlayer requires; the interface does that.
@@ -58,6 +69,8 @@ class ExoPlayerEngine(context: Context) : PlayerEngine {
     /** The audio effects (specs/audio-effects.md), on decoded audio before Media3's speed change. */
     private val effects = EffectsAudioProcessor()
 
+    private val brokenDecoders = BrokenDecoders(context.applicationContext)
+
     internal val player: ExoPlayer = ExoPlayer.Builder(
         context.applicationContext,
         object : DefaultRenderersFactory(context.applicationContext) {
@@ -67,7 +80,23 @@ class ExoPlayerEngine(context: Context) : PlayerEngine {
                     .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
                     .setAudioProcessors(arrayOf(effects))
                     .build()
-        }.setEnableDecoderFallback(true),
+
+            // The platform's renderer first (decoder or passthrough), then FFmpeg, on the same sink,
+            // so the audio effects apply to both.
+            override fun buildAudioRenderers(
+                context: Context,
+                extensionRendererMode: Int,
+                mediaCodecSelector: MediaCodecSelector,
+                enableDecoderFallback: Boolean,
+                audioSink: AudioSink,
+                eventHandler: Handler,
+                eventListener: AudioRendererEventListener,
+                out: ArrayList<Renderer>,
+            ) {
+                super.buildAudioRenderers(context, extensionRendererMode, mediaCodecSelector, enableDecoderFallback, audioSink, eventHandler, eventListener, out)
+                out += FfmpegAudioRenderer(eventHandler, eventListener, audioSink)
+            }
+        }.setEnableDecoderFallback(true).setMediaCodecSelector(brokenDecoders.selector),
     )
         .setAudioAttributes(
             AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(),
@@ -165,7 +194,16 @@ class ExoPlayerEngine(context: Context) : PlayerEngine {
         val tracks = player.currentTracks
         val broken = tracks.groups.firstOrNull { it.type == C.TRACK_TYPE_AUDIO && it.isSelected } ?: return false
         val playable = groupsOf(tracks, C.TRACK_TYPE_AUDIO).map { it.mediaTrackGroup }
-        val next = audioFallback.after(broken.mediaTrackGroup, playable, tracks.containsType(C.TRACK_TYPE_VIDEO))
+        // A platform decoder that exists but fails (the Pixel 11's Dolby decoder): FFmpeg takes the same track.
+        val failedDecoder = failedPlatformDecoder(failure)
+        val software = failedDecoder != null && FfmpegLibrary.supportsFormat(failure.rendererFormat?.sampleMimeType)
+        val next = audioFallback.after(broken.mediaTrackGroup, playable, tracks.containsType(C.TRACK_TYPE_VIDEO), software)
+        if (next == AudioFallback.Next.SoftwareDecoder) {
+            // Left out of the decoder choice from now on, so the track goes to FFmpeg.
+            failedDecoder?.let(brokenDecoders::add)
+            player.prepare()
+            return true
+        }
         val parameters = player.trackSelectionParameters.buildUpon().clearOverridesOfType(C.TRACK_TYPE_AUDIO)
         when (next) {
             is AudioFallback.Next.Track -> {
@@ -176,12 +214,22 @@ class ExoPlayerEngine(context: Context) : PlayerEngine {
                 parameters.setTrackTypeDisabled(C.TRACK_TYPE_AUDIO, true)
                 audioNotice = AudioNotice.NoAudio
             }
-            AudioFallback.Next.Stop -> return false
+            AudioFallback.Next.Stop, AudioFallback.Next.SoftwareDecoder -> return false
         }
         player.trackSelectionParameters = parameters.build()
         player.prepare()
         return true
     }
+
+    /** The name of the platform (MediaCodec) decoder behind [failure], if one failed. */
+    private fun failedPlatformDecoder(failure: ExoPlaybackException): String? =
+        generateSequence<Throwable>(failure.cause) { it.cause }.firstNotNullOfOrNull {
+            when (it) {
+                is MediaCodecDecoderException -> it.codecInfo?.name
+                is MediaCodecRenderer.DecoderInitializationException -> it.codecInfo?.name
+                else -> null
+            }
+        }
 
     /** The file has audio, but the device has no decoder for any of it, so ExoPlayer plays the picture alone. */
     private fun noSupportedAudio(tracks: Tracks): Boolean {
