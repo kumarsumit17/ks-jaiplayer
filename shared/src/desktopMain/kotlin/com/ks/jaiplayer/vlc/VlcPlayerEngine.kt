@@ -79,7 +79,7 @@ class VlcPlayerEngine private constructor(
     init {
         if (lib != null) scope.launch {
             FrameStats.mark("libvlcNewStart")
-            val args = vlcArgs(withStats = FrameStats.enabled || STATS_ARG in extraArgs) + extraArgs.filter { it != STATS_ARG }
+            val args = vlcArgs(withStats = FrameStats.enabled || STATS_ARG in extraArgs) + extraArgs.filter { it != STATS_ARG } + NativeVideoLayer.vlcArgs
             val inst = lib.libvlc_new(args.size, args)
             val mp = inst?.let(lib::libvlc_media_player_new)
             if (inst == null || mp == null) {
@@ -88,6 +88,7 @@ class VlcPlayerEngine private constructor(
             }
             if (NativeVideoLayer.enabled) {
                 NativeVideoLayer.install(vlc!!.location, mp) // Trial only (specs/plan-macos-playback.md).
+                NativeVideoLayer.runSteps(this@VlcPlayerEngine)
             } else {
                 lib.libvlc_video_set_format_callbacks(mp, frames.format, frames.cleanup)
                 lib.libvlc_video_set_callbacks(mp, frames.lockFrame, null, frames.display, null)
@@ -135,6 +136,7 @@ class VlcPlayerEngine private constructor(
     private fun start(l: LibVlc, inst: Pointer, mp: Pointer, path: String, hardware: Boolean, startMs: Long): Boolean {
         val m = l.libvlc_media_new_path(inst, path) ?: return false
         if (hardware) hardwareOption?.let { l.libvlc_media_add_option(m, it) }
+        NativeVideoLayer.vlcArgs.forEach { l.libvlc_media_add_option(m, ":" + it.removePrefix("--")) }
         if (startMs > 0) l.libvlc_media_add_option(m, ":start-time=${startMs / 1000.0}")
         l.libvlc_media_player_set_media(mp, m)
         l.libvlc_media_release(m)

@@ -9,6 +9,10 @@
 // Route B (JAIPLAYER_VIDEO_LAYER=metal): the same buffers as Metal textures (no copy), turned into
 // R'G'B' by our shader on a CAMetalLayer in the video's own colour space (BT.2100 PQ or HLG for
 // HDR) with EDR metadata, so macOS maps it to the display's headroom.
+//
+// Route C (JAIPLAYER_VIDEO_LAYER=vout): no callbacks; libVLC's own caopengllayer video output
+// draws VideoToolbox frames itself (glconv_cvpx, no copy) into a layer handed to it through
+// libvlc_media_player_set_nsobject, placed under the Compose window.
 
 #import <AppKit/AppKit.h>
 #import <AVFoundation/AVFoundation.h>
@@ -18,6 +22,8 @@
 #import <Metal/Metal.h>
 #include <stdatomic.h>
 #include <objc/runtime.h>
+#include <mach/mach_time.h>
+#include <math.h>
 
 typedef struct { CVPixelBufferRef buffer; int locked; } JvlPicture;
 
@@ -25,7 +31,8 @@ typedef struct { CVPixelBufferRef buffer; int locked; } JvlPicture;
 #define SLOTS 8
 
 typedef struct {
-    int route; // 1: AVSampleBufferDisplayLayer, 2: CAMetalLayer
+    int route; // 1: AVSampleBufferDisplayLayer, 2: CAMetalLayer, 3: libVLC's own layer
+    id voutHost;
     CALayer *layer;
     AVSampleBufferDisplayLayer *sb;
     CAMetalLayer *metal;
@@ -42,6 +49,8 @@ typedef struct {
     int primaries, transfer, matrix, fullRange;
     CFDataRef mastering, lightLevel;
     _Atomic long decoded, displayed, failed;
+    // Intervals between frames handed to the screen, since the last jvl_stats (microseconds).
+    uint64_t lastShown; long intervals; double sum, sumSq, maxInterval;
     int fill, visible;
 } JVL;
 
@@ -70,7 +79,11 @@ static NSWindow *mainWindow(void) {
 static void attach(JVL *v) {
     NSWindow *w = mainWindow();
     CALayer *root = w.contentView.layer;
-    if (!root) { fprintf(stderr, "jvl: no window layer yet\n"); return; }
+    if (!root) {
+        // The window is not up yet: try again shortly (main thread).
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 200 * NSEC_PER_MSEC), dispatch_get_main_queue(), ^{ if (!v->layer.superlayer) attach(v); });
+        return;
+    }
     if (getenv("JAIPLAYER_VIDEO_LAYER_DUMP")) dump(root, 0);
     // Compose (Skiko) draws into a CAMetalLayer of its own class; insert below it.
     CALayer *compose = nil;
@@ -206,13 +219,91 @@ static void drawMetal(JVL *v, CVPixelBufferRef b) {
     v->displayed++;
 }
 
+/**
+ * libVLC 3 accepts a drawable that is an NSView or adopts this protocol (matched by name at run
+ * time); its caopengllayer output then calls addVoutLayer:/removeVoutLayer: when they exist.
+ */
+@protocol VLCOpenGLVideoViewEmbedding <NSObject>
+- (void)addVoutSubview:(NSView *)view;
+- (void)removeVoutSubview:(NSView *)view;
+@end
+
+@interface JvlVoutHost : NSObject <VLCOpenGLVideoViewEmbedding>
+@property(nonatomic, strong) CALayer *host;
+@property(nonatomic, strong) NSView *view;
+@end
+
+/** The view has no window, so it would think the screen is 1×; trial only: answer in the screen's scale. */
+static NSSize backingSize(id self, SEL _cmd, NSSize s) { CGFloat k = NSScreen.mainScreen.backingScaleFactor; return NSMakeSize(s.width * k, s.height * k); }
+static NSRect backingRect(id self, SEL _cmd, NSRect r) { CGFloat k = NSScreen.mainScreen.backingScaleFactor; return NSMakeRect(r.origin.x * k, r.origin.y * k, r.size.width * k, r.size.height * k); }
+static void retina(Class c) {
+    Method ms = class_getInstanceMethod(c, @selector(convertSizeToBacking:));
+    Method mr = class_getInstanceMethod(c, @selector(convertRectToBacking:));
+    if (!class_addMethod(c, @selector(convertSizeToBacking:), (IMP)backingSize, method_getTypeEncoding(ms))) method_setImplementation(class_getInstanceMethod(c, @selector(convertSizeToBacking:)), (IMP)backingSize);
+    if (!class_addMethod(c, @selector(convertRectToBacking:), (IMP)backingRect, method_getTypeEncoding(mr))) method_setImplementation(class_getInstanceMethod(c, @selector(convertRectToBacking:)), (IMP)backingRect);
+}
+
+@implementation JvlVoutHost
+- (void)addVoutLayer:(CALayer *)l {
+    CALayer *host = self.host;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [CATransaction begin];
+        [CATransaction setDisableActions:YES];
+        l.frame = host.bounds;
+        l.autoresizingMask = kCALayerWidthSizable | kCALayerHeightSizable;
+        [host addSublayer:l];
+        [CATransaction commit];
+        fprintf(stderr, "jvl: libVLC layer %s added\n", class_getName([l class]));
+    });
+}
+/**
+ * VLC 3.0.24's caopengllayer hosts its CAOpenGLLayer in a view and offers the view. The view is
+ * kept (it owns the drawing), and only its layer goes under the Compose window.
+ */
+- (void)addVoutSubview:(NSView *)view {
+    self.view = view;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if (!view.layer) view.wantsLayer = YES;
+        CALayer *l = view.layer;
+        fprintf(stderr, "jvl: libVLC view %s, layer %s\n", class_getName([view class]), class_getName([l class]));
+        [l removeFromSuperlayer];
+        retina([view class]);
+        l.contentsScale = NSScreen.mainScreen.backingScaleFactor;
+        fprintf(stderr, "jvl: libVLC layer scale %.1f\n", l.contentsScale);
+        // libVLC sizes the picture from the view, so the view follows the window's size.
+        view.frame = self.host.bounds;
+        [[NSNotificationCenter defaultCenter] addObserverForName:NSWindowDidResizeNotification object:nil queue:nil usingBlock:^(NSNotification *n) {
+            view.frame = self.host.bounds;
+            l.frame = self.host.bounds;
+        }];
+        [self addVoutLayer:l];
+    });
+}
+- (void)removeVoutSubview:(NSView *)view {
+    dispatch_async(dispatch_get_main_queue(), ^{ [view.layer removeFromSuperlayer]; });
+    self.view = nil;
+}
+- (void)removeVoutLayer:(CALayer *)l {
+    dispatch_async(dispatch_get_main_queue(), ^{ [l removeFromSuperlayer]; });
+}
+@end
+
+/** Route C: the object to give libvlc_media_player_set_nsobject. */
+void *jvl_vout_host(void *h) { return (__bridge void *)((JVL *)h)->voutHost; }
+
 void *jvl_create(void) {
     JVL *v = calloc(1, sizeof(JVL));
     v->visible = 1;
     dispatch_sync(dispatch_get_main_queue(), ^{
         const char *route = getenv("JAIPLAYER_VIDEO_LAYER");
-        v->route = route && strcmp(route, "metal") == 0 ? 2 : 1;
-        if (v->route == 2) setupMetal(v); else {
+        v->route = route && strcmp(route, "metal") == 0 ? 2 : route && strcmp(route, "vout") == 0 ? 3 : 1;
+        if (v->route == 2) setupMetal(v);
+        else if (v->route == 3) {
+            v->layer = [CALayer layer];
+            JvlVoutHost *host = [JvlVoutHost new];
+            host.host = v->layer;
+            v->voutHost = host;
+        } else {
             v->sb = [[AVSampleBufferDisplayLayer alloc] init];
             v->sb.videoGravity = AVLayerVideoGravityResizeAspect;
             v->layer = v->sb;
@@ -254,9 +345,25 @@ void jvl_set_colour(void *h, int primaries, int transfer, int matrix, int fullRa
     v->lightLevel = lightBytes == 4 ? CFDataCreate(NULL, lightLevel, 4) : NULL;
 }
 
+/** Decoded, displayed, failed, width, height, then since the last call: intervals, longest and standard deviation (µs). */
 void jvl_stats(void *h, long *out) {
     JVL *v = h;
     out[0] = v->decoded; out[1] = v->displayed; out[2] = v->failed; out[3] = v->width; out[4] = v->height;
+    long n = v->intervals;
+    double mean = n ? v->sum / n : 0;
+    out[5] = n; out[6] = (long)v->maxInterval; out[7] = n > 1 ? (long)sqrt(fmax(0, v->sumSq / n - mean * mean)) : 0;
+    v->intervals = 0; v->sum = v->sumSq = v->maxInterval = 0;
+}
+
+static void noteShown(JVL *v) {
+    static mach_timebase_info_data_t tb;
+    if (!tb.denom) mach_timebase_info(&tb);
+    uint64_t now = mach_absolute_time();
+    if (v->lastShown) {
+        double us = (double)(now - v->lastShown) * tb.numer / tb.denom / 1000.0;
+        v->intervals++; v->sum += us; v->sumSq += us * us; if (us > v->maxInterval) v->maxInterval = us;
+    }
+    v->lastShown = now;
 }
 
 // ---- libVLC video callbacks (libvlc_video_set_format_callbacks / set_callbacks) ----
@@ -354,6 +461,7 @@ void jvl_display(void *opaque, void *picture) {
     // libVLC's vmem calls display for the frame, then unlock when the picture goes back to its
     // pool; the frame is finished by now.
     if (p->locked) { CVPixelBufferUnlockBaseAddress(p->buffer, 0); p->locked = 0; }
+    noteShown(v);
     if (v->route == 2) { drawMetal(v, p->buffer); return; }
     tag(v, p->buffer);
     if (!v->desc || !CMVideoFormatDescriptionMatchesImageBuffer(v->desc, p->buffer)) {
