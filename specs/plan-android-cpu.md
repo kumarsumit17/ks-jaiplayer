@@ -49,13 +49,31 @@ CPU follows the number of frames handled: at playback speed 0.5×, 1×, 2× and 
 to 0.5 %) the app uses 29, 46, 61 and 100 %. So the cost is per decoded frame, in the pipeline,
 not a fixed overhead.
 
+## Whole device: the app-only figure misleads
+
+Busy time of all CPUs from `/proc/stat` over 20 s (% of one core), and `top` for the busiest
+processes in the same window; 1080p60 H.264, 1×, phone charging, 2 rounds. At rest the phone uses 29–31 %.
+
+| | Whole device | Player pipeline |
+|---|---|---|
+| JaiPlayer DEV | 139 %, 151 % | app 52 % (Media3 runs in the app) |
+| MX Player | 177 % (an ad's WebView 12 % in it), 157 % | app 11 % + `mediaserver` 34 % |
+
+Both: codec HAL `c2@3.0-service` 16 %, surfaceflinger 15 %, `media.swcodec` (AAC) 6 %.
+MX plays through Android's MediaPlayer, whose pipeline runs in `mediaserver`, which an app-only
+measurement leaves out. Counted in full, JaiPlayer uses about the same CPU as MX (pipeline 52
+against 45 %), not 4×. What is left to win is the gap of about 7 points, and the per-frame cost at
+high speeds.
+
+4K30 HEVC 10-bit decodes in hardware too (`c2.google.hevc.decoder`).
+
 ## Open
 
-- [ ] Whole-device CPU (all processes) for JaiPlayer, MX Player and VLC: whether MX's low figure is
-      work moved into a system process (MediaPlayer runs its pipeline in mediaserver) rather than less work.
-- [ ] Decoder chosen for 4K HEVC 10-bit.
-- [ ] Audio processing: `EffectsAudioProcessor` copies every PCM sample even with no effect on;
-      measure, and bypass it when no effect is active if it costs anything.
+- [x] Whole-device CPU against MX Player (above). VLC not repeated: its speed is set to 2× for all videos.
+- [x] Decoder for 4K HEVC 10-bit: hardware.
+- [ ] Audio processing: `EffectsAudioProcessor` copies every PCM sample even with no effect on.
+      For 48 kHz stereo that is 192 KB/s, far below what the measurement can show; not measured.
+      Bypassing it when no effect is active is cheap to do and safe.
 - [ ] Controls visible against hidden; dropped frames; system media-process CPU.
 - [ ] Cost inside the Media3 pipeline itself (the brief's last suspect): method trace of
       ExoPlayer:Playback with a profileable build.
