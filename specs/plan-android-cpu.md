@@ -45,6 +45,10 @@ Phase 1 measures and diagnoses only; playback code changes come after it, with t
 ExoPlayer:Playback 10–15, MediaCodec_loop 8–11 + 4–5, CodecLooper 3–9, binder threads about 2 each:
 the Media3 and MediaCodec pipeline, about 36–50 % in all.
 
+CPU follows the number of frames handled: at playback speed 0.5×, 1×, 2× and 4× (speed accurate
+to 0.5 %) the app uses 29, 46, 61 and 100 %. So the cost is per decoded frame, in the pipeline,
+not a fixed overhead.
+
 ## Open
 
 - [ ] Whole-device CPU (all processes) for JaiPlayer, MX Player and VLC: whether MX's low figure is
