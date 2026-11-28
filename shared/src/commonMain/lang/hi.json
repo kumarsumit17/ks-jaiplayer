@@ -35,6 +35,8 @@
   "error.vlcMissing.body": "KS JaiPlayer अपना वीडियो प्लेयर शुरू नहीं कर सका। KS JaiPlayer दोबारा इंस्टॉल करें, फिर उसे खोलें।",
   "error.cannotOpen": "{name} को चलाया नहीं जा सका।",
   "error.playback": "किसी गड़बड़ी की वजह से प्लेबैक रुक गया।",
+  "audio.notice.otherTrack": "यह डिवाइस वह ऑडियो नहीं चला सका। दूसरा ऑडियो ट्रैक चलाया जा रहा है।",
+  "audio.notice.noAudio": "यह डिवाइस इस फ़ाइल का ऑडियो नहीं चला सकता। सिर्फ़ वीडियो चलाया जा रहा है।",
   "home.openSeries": "सीरीज़ या फ़ोल्डर खोलें…",
   "player.next": "अगला एपिसोड",
   "player.previous": "पिछला एपिसोड",

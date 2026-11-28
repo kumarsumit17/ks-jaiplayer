@@ -35,6 +35,8 @@
   "error.vlcMissing.body": "KS JaiPlayer could not start its built-in video player. Reinstall KS JaiPlayer, then open it again.",
   "error.cannotOpen": "Can't play {name}.",
   "error.playback": "Playback stopped because of an error.",
+  "audio.notice.otherTrack": "This device couldn't play that audio. Playing another audio track.",
+  "audio.notice.noAudio": "This device can't play this file's audio. Playing the picture only.",
   "home.openSeries": "Open series or folder…",
   "player.next": "Next episode",
   "player.previous": "Previous episode",

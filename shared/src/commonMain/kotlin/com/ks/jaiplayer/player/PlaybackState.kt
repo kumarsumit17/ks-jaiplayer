@@ -37,6 +37,8 @@ data class PlaybackState(
      * effects cannot apply to it.
      */
     val audioPassthrough: Boolean = false,
+    /** Set when audio could not be played and the engine carried on without it, or with another track. */
+    val audioNotice: AudioNotice? = null,
 ) {
     val isPlaying: Boolean get() = status == PlaybackStatus.Playing
     val canSeek: Boolean get() = durationMs > 0
