@@ -59,7 +59,11 @@ class VlcEngineIntegrationTest {
             engine.await("audio track") { it.audioTrackId == second }
 
             val srt = File.createTempFile("jaiplayer", ".srt").apply {
-                writeText("1\n00:00:00,000 --> 00:10:00,000\nHello from KS JaiPlayer subtitles\n")
+                // A new cue every second: libVLC shows no cue that began before the file was added.
+                writeText((0 until 600).joinToString("") { i ->
+                    val at = "00:%02d:%02d".format(i / 60, i % 60)
+                    "${i + 1}\n$at,000 --> $at,990\nHello from KS JaiPlayer subtitles\n\n"
+                })
                 deleteOnExit()
             }
             val before = brightPixelsInBottomQuarter(engine)
@@ -84,7 +88,13 @@ class VlcEngineIntegrationTest {
         val luma = frame.memory.getByteArray(0, l.lumaPitch * l.height)
         var n = 0
         for (y in l.height * 3 / 4 until l.height) for (x in 0 until l.width) {
-            if ((luma[y * l.lumaPitch + x].toInt() and 0xFF) > 220) n++
+            // 8-bit value; a 16-bit sample (10-bit video) is read little-endian and scaled down.
+            val value = if (!l.chroma.wide) luma[y * l.lumaPitch + x].toInt() and 0xFF else {
+                val at = y * l.lumaPitch + x * 2
+                val word = (luma[at].toInt() and 0xFF) or ((luma[at + 1].toInt() and 0xFF) shl 8)
+                if (l.chroma.highBits) word shr 8 else word shr 2
+            }
+            if (value > 220) n++
         }
         return n
     }

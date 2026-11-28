@@ -20,6 +20,7 @@ import com.ks.jaiplayer.desktop.mediaRefOf
 import com.ks.jaiplayer.player.MediaRef
 import com.ks.jaiplayer.player.PlayerEngine
 import com.ks.jaiplayer.vlc.FrameStats
+import com.ks.jaiplayer.vlc.VideoFrames
 import com.ks.jaiplayer.vlc.VlcPlayerEngine
 import com.sun.jna.Pointer
 import org.jetbrains.skia.ColorAlphaType
@@ -43,29 +44,108 @@ import kotlin.math.max
 import kotlin.math.min
 
 private val sampling = FilterMipmap(FilterMode.LINEAR, MipmapMode.NONE)
+private val exact = FilterMipmap(FilterMode.NEAREST, MipmapMode.NONE)
 
 /**
- * Turns the three planes of a YUV 4:2:0 frame into colour on the GPU. Video is "limited range"
- * (black at 16, white at 235); HD and larger use the BT.709 colours, smaller video BT.601.
+ * Turns an 8-bit I420 frame into colour on the GPU. Each plane is a GRAY_8 image (value in red),
+ * filtered by the GPU. [range] maps the samples to limited range (black at 16, white at 235), and
+ * [matrix] holds the YUV-to-RGB weights of BT.601, BT.709 or BT.2020.
  */
-private val yuvToRgb: RuntimeEffect by lazy {
+private val yuv8ToRgb: RuntimeEffect by lazy {
     RuntimeEffect.makeForShader(
         """
         uniform shader luma;
         uniform shader cb;
         uniform shader cr;
-        uniform float hd;
+        uniform float4 range;
+        uniform float4 matrix;
         half4 main(float2 p) {
-            float y = (luma.eval(p).r - 16.0 / 255.0) * (255.0 / 219.0);
-            float u = (cb.eval(p * 0.5).r - 128.0 / 255.0) * (255.0 / 224.0);
-            float v = (cr.eval(p * 0.5).r - 128.0 / 255.0) * (255.0 / 224.0);
-            float3 rgb = hd > 0.5
-                ? float3(y + 1.5748 * v, y - 0.1873 * u - 0.4681 * v, y + 1.8556 * u)
-                : float3(y + 1.402 * v, y - 0.3441 * u - 0.7141 * v, y + 1.772 * u);
+            float y = (luma.eval(p).r - range.x) * range.y;
+            float u = (cb.eval(p * 0.5).r - range.z) * range.w;
+            float v = (cr.eval(p * 0.5).r - range.z) * range.w;
+            float3 rgb = float3(y + matrix.x * v, y - matrix.y * u - matrix.z * v, y + matrix.w * u);
             return half4(half3(saturate(rgb)), 1.0);
         }
         """.trimIndent(),
     )
+}
+
+/**
+ * Turns a 16-bit-a-sample frame (10-bit planar or P010) into colour on the GPU. This Skia build
+ * passes its 16-bit colour types to the native library as other types, so each plane is wrapped
+ * as GRAY_8 bytes, twice as wide, read without filtering: the shader joins each sample's low and
+ * high byte and filters bilinearly itself. [semi]: Cb and Cr interleaved in the cb plane (P010).
+ */
+private val yuv16ToRgb: RuntimeEffect by lazy {
+    RuntimeEffect.makeForShader(
+        """
+        uniform shader luma;
+        uniform shader cb;
+        uniform shader cr;
+        uniform float semi;
+        uniform float2 lumaSize;
+        uniform float2 chromaSize;
+        uniform float4 range;
+        uniform float4 matrix;
+        float word(float lo, float hi) { return (lo * 255.0 + hi * 65280.0) / 65535.0; }
+        float lumaAt(float2 i) {
+            i = clamp(i, float2(0.0), lumaSize - 1.0);
+            float2 b = float2(i.x * 2.0 + 0.5, i.y + 0.5);
+            return word(luma.eval(b).r, luma.eval(b + float2(1.0, 0.0)).r);
+        }
+        float cbAt(float2 i) {
+            i = clamp(i, float2(0.0), chromaSize - 1.0);
+            float2 b = float2(i.x * (semi > 0.5 ? 4.0 : 2.0) + 0.5, i.y + 0.5);
+            return word(cb.eval(b).r, cb.eval(b + float2(1.0, 0.0)).r);
+        }
+        float crAt(float2 i) {
+            i = clamp(i, float2(0.0), chromaSize - 1.0);
+            if (semi > 0.5) {
+                float2 b = float2(i.x * 4.0 + 2.5, i.y + 0.5);
+                return word(cb.eval(b).r, cb.eval(b + float2(1.0, 0.0)).r);
+            }
+            float2 b = float2(i.x * 2.0 + 0.5, i.y + 0.5);
+            return word(cr.eval(b).r, cr.eval(b + float2(1.0, 0.0)).r);
+        }
+        half4 main(float2 p) {
+            float2 t = p - 0.5;
+            float2 i = floor(t);
+            float2 f = t - i;
+            float yRaw = mix(mix(lumaAt(i), lumaAt(i + float2(1.0, 0.0)), f.x),
+                             mix(lumaAt(i + float2(0.0, 1.0)), lumaAt(i + float2(1.0, 1.0)), f.x), f.y);
+            float2 ct = p * 0.5 - 0.5;
+            float2 ci = floor(ct);
+            float2 cf = ct - ci;
+            float uRaw = mix(mix(cbAt(ci), cbAt(ci + float2(1.0, 0.0)), cf.x),
+                             mix(cbAt(ci + float2(0.0, 1.0)), cbAt(ci + float2(1.0, 1.0)), cf.x), cf.y);
+            float vRaw = mix(mix(crAt(ci), crAt(ci + float2(1.0, 0.0)), cf.x),
+                             mix(crAt(ci + float2(0.0, 1.0)), crAt(ci + float2(1.0, 1.0)), cf.x), cf.y);
+            float y = (yRaw - range.x) * range.y;
+            float u = (uRaw - range.z) * range.w;
+            float v = (vRaw - range.z) * range.w;
+            float3 rgb = float3(y + matrix.x * v, y - matrix.y * u - matrix.z * v, y + matrix.w * u);
+            return half4(half3(saturate(rgb)), 1.0);
+        }
+        """.trimIndent(),
+    )
+}
+
+/** Limited-range mapping (black, luma scale, chroma centre, chroma scale) for each layout. */
+private fun rangeOf(chroma: VideoFrames.Chroma): FloatArray = when {
+    !chroma.wide -> floatArrayOf(16f / 255f, 255f / 219f, 128f / 255f, 255f / 224f)
+    chroma.highBits -> floatArrayOf(4096f / 65535f, 65535f / (876f * 64f), 32768f / 65535f, 65535f / (896f * 64f))
+    else -> floatArrayOf(64f / 65535f, 65535f / 876f, 512f / 65535f, 65535f / 896f)
+}
+
+/**
+ * YUV-to-RGB weights (R from Cr, G from Cb, G from Cr, B from Cb). libVLC 3 does not report a
+ * video's colour space through the callbacks, so it follows the size, as players do without it:
+ * 10-bit UHD is BT.2020, HD and larger BT.709, smaller BT.601.
+ */
+private fun matrixOf(layout: VideoFrames.Layout): FloatArray = when {
+    layout.chroma.wide && (layout.width >= 3840 || layout.height >= 2160) -> floatArrayOf(1.4746f, 0.16455f, 0.57135f, 1.8814f)
+    layout.height >= 720 || layout.width >= 1280 -> floatArrayOf(1.5748f, 0.18732f, 0.46812f, 1.8556f)
+    else -> floatArrayOf(1.402f, 0.34414f, 0.71414f, 1.772f)
 }
 
 @Composable
@@ -78,37 +158,56 @@ actual fun VideoSurface(engine: PlayerEngine, modifier: Modifier, fill: Boolean)
         val frame = frames.frameToDraw() ?: return@Canvas
         if (System.getenv("JAIPLAYER_GPU_CACHE") != "default") GpuCacheLimit.apply()
         val l = frame.layout
-        val w = l.width
-        val h = l.height
-        // The planes are wrapped without copying; VideoFrames keeps them unchanged while shown.
-        val base = Pointer.nativeValue(frame.memory)
-        val planes = listOf(
-            plane(base, w, h, l.lumaPitch),
-            plane(base + l.uOffset, l.chromaWidth, l.chromaHeight, l.chromaPitch),
-            plane(base + l.vOffset, l.chromaWidth, l.chromaHeight, l.chromaPitch),
-        )
-        val scale = if (fill) max(size.width / w, size.height / h) else min(size.width / w, size.height / h)
-        val dw = w * scale
-        val dh = h * scale
-        val left = (size.width - dw) / 2
-        val top = (size.height - dh) / 2
-        val builder = RuntimeShaderBuilder(yuvToRgb)
-        listOf("luma", "cb", "cr").forEachIndexed { i, name ->
-            builder.child(name, planes[i].second.makeShader(FilterTileMode.CLAMP, FilterTileMode.CLAMP, sampling, null))
-        }
-        builder.uniform("hd", if (h >= 720 || w >= 1280) 1f else 0f)
-        val shader = builder.makeShader(Matrix33(scale, 0f, left, 0f, scale, top, 0f, 0f, 1f))
-        paint.shader = shader
-        drawIntoCanvas { it.nativeCanvas.drawRect(Rect.makeXYWH(left, top, dw, dh), paint) }
-        paint.shader = null
-        shader.close()
-        builder.close()
-        planes.forEach { (pixmap, image) -> image.close(); pixmap.close() }
+        val scale = if (fill) max(size.width / l.width, size.height / l.height) else min(size.width / l.width, size.height / l.height)
+        val left = (size.width - l.width * scale) / 2
+        val top = (size.height - l.height * scale) / 2
+        drawIntoCanvas { drawVideoFrame(it.nativeCanvas, frame, left, top, scale, paint) }
         FrameStats.frameDrawn(System.nanoTime() - start)
     }
 }
 
-/** One 8-bit plane of a frame as a Skia image over the native memory (no copy). */
+/**
+ * Draws [frame] at ([left], [top]) scaled by [scale], turning YUV into colour on the GPU. The
+ * planes are wrapped without copying; VideoFrames keeps them unchanged while shown.
+ */
+internal fun drawVideoFrame(canvas: org.jetbrains.skia.Canvas, frame: VideoFrames.Frame, left: Float, top: Float, scale: Float, paint: Paint) {
+    val l = frame.layout
+    val w = l.width
+    val h = l.height
+    val base = Pointer.nativeValue(frame.memory)
+    val c = l.chroma
+    // A 16-bit plane is wrapped as twice as many 8-bit bytes (see yuv16ToRgb).
+    val bytes = if (c.wide) 2 else 1
+    val chromaSamples = if (c.semiPlanar) 2 else 1
+    val planes = buildList {
+        add(plane(base, w * bytes, h, l.lumaPitch))
+        add(plane(base + l.uOffset, l.chromaWidth * chromaSamples * bytes, l.chromaHeight, l.chromaPitch))
+        if (!c.semiPlanar) add(plane(base + l.vOffset, l.chromaWidth * bytes, l.chromaHeight, l.chromaPitch))
+    }
+    val builder = RuntimeShaderBuilder(if (c.wide) yuv16ToRgb else yuv8ToRgb)
+    val filter = if (c.wide) exact else sampling
+    val shaders = planes.map { it.second.makeShader(FilterTileMode.CLAMP, FilterTileMode.CLAMP, filter, null) }
+    builder.child("luma", shaders[0])
+    builder.child("cb", shaders[1])
+    builder.child("cr", shaders.getOrElse(2) { shaders[1] }) // Semi-planar: Cr is read from cb.
+    if (c.wide) {
+        builder.uniform("semi", if (c.semiPlanar) 1f else 0f)
+        builder.uniform("lumaSize", w.toFloat(), h.toFloat())
+        builder.uniform("chromaSize", l.chromaWidth.toFloat(), l.chromaHeight.toFloat())
+    }
+    rangeOf(c).let { builder.uniform("range", it[0], it[1], it[2], it[3]) }
+    matrixOf(l).let { builder.uniform("matrix", it[0], it[1], it[2], it[3]) }
+    val shader = builder.makeShader(Matrix33(scale, 0f, left, 0f, scale, top, 0f, 0f, 1f))
+    paint.shader = shader
+    canvas.drawRect(Rect.makeXYWH(left, top, w * scale, h * scale), paint)
+    paint.shader = null
+    shader.close()
+    builder.close()
+    shaders.forEach { it.close() }
+    planes.forEach { (pixmap, image) -> image.close(); pixmap.close() }
+}
+
+/** One plane of a frame as an 8-bit Skia image over the native memory (no copy). */
 private fun plane(address: Long, width: Int, height: Int, pitch: Int): Pair<Pixmap, Image> {
     val pixmap = Pixmap.make(ImageInfo(width, height, ColorType.GRAY_8, ColorAlphaType.OPAQUE), address, pitch)
     return pixmap to Image.makeFromPixmap(pixmap)
